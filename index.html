@@ -940,13 +940,6 @@
     </div>
 
     <script>
-        // ==========================================
-        // CONFIGURATION: PASTE YOUR KEYS HERE
-        // ==========================================
-        const OPENROUTER_KEY = "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";
-        const TAVILY_KEY = "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";
-        // ==========================================
-
         let spriteMap = {
             idle: 'idle-itsuki.png',
             happy: 'good-itsuki.png',
@@ -960,7 +953,6 @@
 
         async function generateTest() {
             if(!spriteMap.idle) { alert("Please upload Itsuki images first!"); return; }
-            if(OPENROUTER_KEY.includes("PASTE")) { alert("Keys missing in code!"); return; }
 
             const topics = document.getElementById('topics').value;
             const count = document.getElementById('q-count').value;
@@ -982,17 +974,16 @@
                 score = 0;
 
                 // 1. Tavily Real-time Search
-                const search = await fetch('https://api.tavily.com/search', {
+                const search = await fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        api_key: TAVILY_KEY,
                         query: `Find reliable sources about ${topics} published from ${startDate} through ${endDate}. Return only facts supported by dated sources within this exact date range.`,
                         search_depth: "advanced"
                     })
                 });
                 if(!search.ok) {
-                    throw new Error(`Search request failed (${search.status}). Check the Tavily key.`);
+                    throw new Error(`Search request failed (${search.status}).`);
                 }
                 const searchResults = await search.json();
                 if(!Array.isArray(searchResults.results)) {
@@ -1022,9 +1013,9 @@
                     const seenQuestions = new Set(quizData.map(question => question.q.toLowerCase().trim()));
 
                     for(let attempt = 1; attempt <= 3; attempt++) {
-                        const ai = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                        const ai = await fetch("/api/chat", {
                             method: "POST",
-                            headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
+                            headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                                 model: "openai/gpt-4o-mini",
                                 temperature: 0,
@@ -1039,7 +1030,7 @@
                         });
                         const aiData = await ai.json();
                         if(!ai.ok) {
-                            throw new Error(aiData.error?.message || `AI request failed (${ai.status}). Check the OpenRouter key.`);
+                            throw new Error(aiData.error?.message || `AI request failed (${ai.status}).`);
                         }
                         const match = aiData.choices?.[0]?.message?.content?.match(/\[.*\]/s);
                         if(!match) continue;
@@ -1618,11 +1609,9 @@
         }
 
         async function subjectOpenRouter(body) {
-            const key = typeof OPENROUTER_KEY !== "undefined" ? OPENROUTER_KEY : "";
-            if (!key || key.includes("PASTE")) throw new Error("The OpenRouter key is missing.");
-            const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            const res = await fetch("/api/chat", {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${key}`, "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body)
             });
             const data = await res.json();
