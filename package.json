@@ -1,0 +1,14 @@
+{
+  "name": "sao-study-as-otaku",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SAO Study As Otaku - anime-themed GK and subject exam app with AI marking.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "echo 'Static build ready'",
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

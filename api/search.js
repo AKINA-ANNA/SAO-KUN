@@ -12,8 +12,18 @@ function parseBody(body) {
 }
 
 module.exports = async function handler(req, res) {
+    if (res.setHeader) {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    }
+
+    if (req.method === "OPTIONS") {
+        return res.status(200).end();
+    }
+
     if (req.method !== "POST") {
-        res.setHeader("Allow", "POST");
+        if (res.setHeader) res.setHeader("Allow", "POST");
         return res.status(405).json({ error: { message: "Method not allowed." } });
     }
 
@@ -37,7 +47,7 @@ module.exports = async function handler(req, res) {
         const text = await upstream.text();
         let data;
         try {
-            data = JSON.parse(text);
+            data = text ? JSON.parse(text) : {};
         } catch {
             data = { error: { message: text || "Invalid response from Tavily." } };
         }
