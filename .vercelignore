@@ -1,0 +1,11 @@
+.git
+.gitignore
+.gitattributes
+.vercel
+.vscode
+node_modules
+.env
+.env.*
+.env.example
+README.md
+server.js
