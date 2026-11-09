@@ -258,7 +258,8 @@
            ANIME FOCUS MODE
            ============================================================ */
         body.focus-open { overflow: hidden; }
-        body.focus-open #surprise-btn { opacity: 0; pointer-events: none; }
+        body.focus-open #surprise-btn,
+        body.focus-session #surprise-btn { opacity: 0; pointer-events: none; }
 
         #focus-setup {
             position: fixed; inset: 0; z-index: 7000;
@@ -414,7 +415,7 @@
 
         #focus-timer-wrap {
             position: fixed; left: 0; top: 0; width: 150px; height: 150px;
-            z-index: 6; opacity: 0; visibility: hidden; pointer-events: none;
+            z-index: 8000; opacity: 0; visibility: hidden; pointer-events: none;
             transform: scale(.7); transform-origin: center center;
             transition: opacity .45s ease, transform .5s cubic-bezier(.2,.9,.3,1.25), visibility .45s ease;
             touch-action: none;
@@ -471,6 +472,11 @@
         .focus-timer-circle.done #focus-time-display {
             color: #5fe0b0; text-shadow: 0 0 10px rgba(95,224,176,.95);
         }
+        .focus-timer-circle.paused::before {
+            animation-play-state: paused;
+            filter: drop-shadow(0 0 9px rgba(255,209,102,.38));
+        }
+        .focus-timer-circle.paused #focus-phase { color: #ffd166; }
         @keyframes focusRingSpin { to { transform: rotate(360deg); } }
 
         #focus-todo-toggle {
@@ -572,6 +578,49 @@
             margin: 7px 0 3px; font-size: .72rem; line-height: 1.4;
             text-align: center; color: rgba(255,255,255,.4);
         }
+        .focus-todo-footer {
+            display: flex; justify-content: flex-end; margin-top: 10px;
+        }
+        .focus-end-session {
+            border: 1px solid rgba(255,90,118,.42);
+            background: rgba(255,90,118,.12);
+            color: #ffb3c1; padding: 7px 11px; border-radius: 999px;
+            font-family: 'Fredoka', sans-serif; font-size: .72rem; font-weight: 600;
+            cursor: pointer; transition: background .2s ease, border-color .2s ease;
+        }
+        .focus-end-session:hover {
+            background: rgba(255,90,118,.22); border-color: rgba(255,90,118,.72);
+        }
+
+        #focus-paused-bar {
+            position: fixed; left: 50%; bottom: 26px; z-index: 8500;
+            display: flex; align-items: center; gap: 14px;
+            max-width: calc(100vw - 28px); padding: 12px 14px 12px 18px;
+            border-radius: 18px; box-sizing: border-box;
+            background: linear-gradient(145deg, rgba(24,24,36,.97), rgba(12,14,24,.95));
+            border: 1px solid rgba(255,255,255,.2);
+            box-shadow: 0 18px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,209,102,.07);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            color: #f6f7ff; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translate(-50%, 18px);
+            transition: opacity .3s ease, transform .3s cubic-bezier(.2,.8,.2,1), visibility .3s ease;
+        }
+        #focus-paused-bar.show {
+            opacity: 1; visibility: visible; pointer-events: auto;
+            transform: translate(-50%, 0);
+        }
+        .focus-paused-copy {
+            display: flex; flex-direction: column; gap: 2px; min-width: 0;
+        }
+        .focus-paused-copy strong {
+            font-family: 'Fredoka', sans-serif; font-size: .84rem; letter-spacing: .02em;
+        }
+        .focus-paused-copy span {
+            font-size: .7rem; line-height: 1.35; color: rgba(255,255,255,.62);
+        }
+        .focus-paused-actions { display: flex; gap: 7px; flex-shrink: 0; }
+        #focus-paused-bar .focus-primary-btn,
+        #focus-paused-bar .focus-ghost-btn { padding: 9px 14px; font-size: .78rem; }
 
         @media (max-width: 600px) {
             .focus-topbar { top: 12px; left: 12px; right: 12px; }
@@ -580,6 +629,11 @@
             #focus-timer-wrap, .focus-timer-circle { width: 132px; height: 132px; }
             #focus-time-display { font-size: 1.38rem; }
             #focus-todo-drawer { width: min(260px, 82vw); }
+            #focus-paused-bar {
+                width: calc(100vw - 20px); bottom: 14px; flex-direction: column;
+                align-items: stretch;
+            }
+            .focus-paused-actions { justify-content: flex-end; }
         }
 
         /* ============================================================
@@ -1973,7 +2027,7 @@
         <div class="focus-setup-card">
             <p class="focus-setup-eyebrow">Anime Focus Mode</p>
             <h2 id="focus-setup-title">Lock in with the Nakano sisters</h2>
-            <p class="focus-setup-copy">Choose a focus block, press start, and let the intro carry you into deep study. The timer floats above everything so you can keep working.</p>
+            <p class="focus-setup-copy">Choose a focus block and let the intro carry you into deep study. The site enters fullscreen, and the timer keeps floating over everything. If fullscreen or the tab loses focus, the timer pauses.</p>
             <div class="focus-time-field">
                 <label for="focus-minutes">Set Focus Time (Minutes):</label>
                 <div class="focus-time-input-wrap">
@@ -1994,7 +2048,7 @@
         </div>
     </div>
 
-    <!-- Anime Focus Mode: full-screen video + floating timer -->
+    <!-- Anime Focus Mode: intro video overlay only. -->
     <div id="focus-mode" aria-hidden="true">
         <div class="focus-backdrop"></div>
         <!-- Custom intro video lives at the project root as suprise.mp4. -->
@@ -2005,30 +2059,45 @@
             <div class="focus-topbar-actions">
                 <button type="button" class="ghost-btn" id="focus-sound" onclick="toggleFocusSound()">Mute</button>
                 <button type="button" class="ghost-btn" id="focus-skip" onclick="skipFocusVideo()">Skip intro →</button>
-                <button type="button" class="ghost-btn" onclick="closeFocusMode()">Exit focus</button>
+                <button type="button" class="ghost-btn" onclick="endFocusSession()">End focus</button>
             </div>
         </div>
+    </div>
 
-        <div id="focus-timer-wrap" aria-hidden="true">
-            <div id="focus-timer-circle" class="focus-timer-circle" role="timer" aria-label="Draggable Pomodoro timer">
-                <div class="focus-timer-inner">
-                    <span class="focus-timer-kicker">Nakano Focus</span>
-                    <span id="focus-time-display" aria-live="polite">25:00</span>
-                    <span id="focus-phase">Pomodoro</span>
-                </div>
+    <!-- The floating timer sits outside the intro overlay so it survives mode/quiz changes. -->
+    <div id="focus-timer-wrap" aria-hidden="true">
+        <div id="focus-timer-circle" class="focus-timer-circle" role="timer" aria-label="Draggable Pomodoro timer">
+            <div class="focus-timer-inner">
+                <span class="focus-timer-kicker">Nakano Focus</span>
+                <span id="focus-time-display" aria-live="polite">25:00</span>
+                <span id="focus-phase">Pomodoro</span>
             </div>
-            <button id="focus-todo-toggle" type="button" onclick="toggleFocusDrawer()" aria-label="Open study checklist" aria-expanded="false">📋</button>
-            <div id="focus-todo-drawer" aria-hidden="true">
-                <div class="focus-todo-head">
-                    <span class="focus-todo-title">Study checklist</span>
-                    <span class="focus-todo-count" id="focus-todo-count">0 left</span>
-                </div>
-                <div class="focus-todo-input-row">
-                    <input id="focus-todo-input" type="text" maxlength="140" placeholder="Add task..." onkeydown="if(event.key==='Enter'){event.preventDefault();addFocusTask();}">
-                    <button id="focus-todo-add" type="button" onclick="addFocusTask()" aria-label="Add task">+</button>
-                </div>
-                <div id="focus-todo-list"></div>
+        </div>
+        <button id="focus-todo-toggle" type="button" onclick="toggleFocusDrawer()" aria-label="Open study checklist" aria-expanded="false">📋</button>
+        <div id="focus-todo-drawer" aria-hidden="true">
+            <div class="focus-todo-head">
+                <span class="focus-todo-title">Study checklist</span>
+                <span class="focus-todo-count" id="focus-todo-count">0 left</span>
             </div>
+            <div class="focus-todo-input-row">
+                <input id="focus-todo-input" type="text" maxlength="140" placeholder="Add task..." onkeydown="if(event.key==='Enter'){event.preventDefault();addFocusTask();}">
+                <button id="focus-todo-add" type="button" onclick="addFocusTask()" aria-label="Add task">+</button>
+            </div>
+            <div id="focus-todo-list"></div>
+            <div class="focus-todo-footer">
+                <button type="button" class="focus-end-session" onclick="endFocusSession()">End focus session</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="focus-paused-bar" role="status" aria-hidden="true">
+        <div class="focus-paused-copy">
+            <strong>Focus paused</strong>
+            <span>Fullscreen was exited or the tab lost focus. Resume to continue.</span>
+        </div>
+        <div class="focus-paused-actions">
+            <button type="button" class="focus-primary-btn" onclick="resumeFocusSession()">Resume focus</button>
+            <button type="button" class="focus-ghost-btn" onclick="endFocusSession()">End</button>
         </div>
     </div>
 
@@ -2397,7 +2466,6 @@
             positionModeIndicator();
             if (isSubject) {
                 closeSurpriseIntro();
-                closeFocusMode();
             }
 
             const video = document.getElementById("subject-bg");
@@ -3055,6 +3123,8 @@
         let studyTime = 25;               // minutes
         let showTimer = false;
         let focusEndAt = 0;
+        let focusRemainingMs = 0;
+        let focusPaused = false;
         let focusInterval = null;
         let isTodoOpen = false;
         let focusTasks = [];
@@ -3073,6 +3143,96 @@
             if (button && video) button.textContent = video.muted ? "Sound on" : "Mute";
         }
 
+        function isFocusFullscreen() {
+            return Boolean(
+                document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.msFullscreenElement
+            );
+        }
+
+        function enterFocusFullscreen() {
+            if (isFocusFullscreen()) return;
+            const target = document.documentElement;
+            const request = target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen;
+            if (!request) return;
+            try {
+                const result = request.call(target, { navigationUI: "hide" });
+                if (result && typeof result.catch === "function") result.catch(() => {});
+            } catch (error) {}
+        }
+
+        function exitFocusFullscreen() {
+            if (!isFocusFullscreen()) return;
+            const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+            if (!exit) return;
+            try {
+                const result = exit.call(document);
+                if (result && typeof result.catch === "function") result.catch(() => {});
+            } catch (error) {}
+        }
+
+        function showFocusPausedBar() {
+            const bar = document.getElementById("focus-paused-bar");
+            if (!bar) return;
+            bar.classList.add("show");
+            bar.setAttribute("aria-hidden", "false");
+        }
+
+        function hideFocusPausedBar() {
+            const bar = document.getElementById("focus-paused-bar");
+            if (!bar) return;
+            bar.classList.remove("show");
+            bar.setAttribute("aria-hidden", "true");
+        }
+
+        function pauseFocusSession() {
+            if (focusState !== "playing" || focusPaused) return;
+            if (showTimer && focusRemainingMs <= 0) return;
+
+            if (showTimer) {
+                focusRemainingMs = Math.max(0, focusEndAt - Date.now());
+                clearInterval(focusInterval);
+                focusInterval = null;
+                const display = document.getElementById("focus-time-display");
+                if (display) display.textContent = formatFocusClock(focusRemainingMs / 1000);
+                const phase = document.getElementById("focus-phase");
+                if (phase) phase.textContent = "Paused";
+                const circle = document.getElementById("focus-timer-circle");
+                if (circle) circle.classList.add("paused");
+            }
+
+            const video = document.getElementById("focus-video");
+            if (video) video.pause();
+            focusPaused = true;
+            showFocusPausedBar();
+        }
+
+        function resumeFocusSession() {
+            if (focusState !== "playing" || !focusPaused) return;
+            enterFocusFullscreen();
+            focusPaused = false;
+            hideFocusPausedBar();
+
+            const circle = document.getElementById("focus-timer-circle");
+            if (circle) circle.classList.remove("paused");
+
+            if (showTimer && focusRemainingMs > 0) {
+                focusEndAt = Date.now() + focusRemainingMs;
+                const phase = document.getElementById("focus-phase");
+                if (phase) phase.textContent = "Pomodoro";
+                updateFocusClock();
+                clearInterval(focusInterval);
+                focusInterval = setInterval(updateFocusClock, 250);
+            }
+
+            const overlay = document.getElementById("focus-mode");
+            const video = document.getElementById("focus-video");
+            if (overlay && overlay.classList.contains("active") && video && !video.ended) {
+                video.play().catch(() => {});
+            }
+        }
+
         function setFocusPreset(minutes) {
             const input = document.getElementById("focus-minutes");
             if (input) input.value = minutes;
@@ -3080,6 +3240,7 @@
 
         function openFocusSetup() {
             if (!document.body.classList.contains("mode-gk")) return;
+            if (focusState === "playing") return;
             closeSurpriseIntro();
             focusState = "setting-time";
             document.body.classList.add("focus-open");
@@ -3111,6 +3272,7 @@
         }
 
         function commenceFocus() {
+            if (focusState === "playing") return;
             const input = document.getElementById("focus-minutes");
             const raw = Number(input && input.value);
             const minutes = Number.isFinite(raw) && raw > 0 ? raw : 25;
@@ -3118,15 +3280,18 @@
             if (input) input.value = studyTime;
 
             focusState = "playing";
+            focusPaused = false;
+            focusRemainingMs = studyTime * 60 * 1000;
+            enterFocusFullscreen();
             closeFocusSetup(false);
             resetFocusTimerState();
             resetFocusTimerPosition();
-            document.body.classList.add("focus-open");
+            document.body.classList.add("focus-open", "focus-session");
 
             const overlay = document.getElementById("focus-mode");
             if (overlay) {
                 overlay.classList.add("active");
-                overlay.classList.remove("ended");
+                overlay.classList.remove("ended", "leaving");
                 overlay.setAttribute("aria-hidden", "false");
             }
             const label = document.getElementById("focus-mode-label");
@@ -3165,8 +3330,8 @@
         }
 
         function handleFocusVideoError() {
-            // If the custom intro cannot load, skip straight to the dark study
-            // screen with the timer so the focus session still works.
+            // If the custom intro cannot load, hand the user back their site
+            // with the floating timer so the focus session still works.
             finishFocusVideo();
         }
 
@@ -3188,11 +3353,15 @@
             if (video) video.pause();
 
             if (!showTimer) revealFocusTimer();
-            overlay.classList.add("ended");
-            const label = document.getElementById("focus-mode-label");
-            if (label) label.textContent = "Anime focus mode · study";
+
+            // Leave the intro behind and hand the user back their normal site.
+            // The floating timer is outside this overlay, so it stays visible.
+            overlay.classList.remove("active", "ended", "leaving");
+            overlay.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("focus-open");
+
             const skip = document.getElementById("focus-skip");
-            if (skip) skip.style.display = "none";
+            if (skip) skip.style.display = "";
         }
 
         function skipFocusVideo() {
@@ -3206,12 +3375,31 @@
             if (!wrap) return;
             wrap.classList.add("show");
             wrap.setAttribute("aria-hidden", "false");
+
+            if (focusPaused) {
+                focusRemainingMs = Math.max(0, focusRemainingMs || studyTime * 60 * 1000);
+                const display = document.getElementById("focus-time-display");
+                if (display) display.textContent = formatFocusClock(focusRemainingMs / 1000);
+                const phase = document.getElementById("focus-phase");
+                if (phase) phase.textContent = "Paused";
+                const circle = document.getElementById("focus-timer-circle");
+                if (circle) circle.classList.add("paused");
+                showFocusPausedBar();
+                return;
+            }
             startFocusCountdown();
         }
 
         function startFocusCountdown() {
             clearInterval(focusInterval);
-            focusEndAt = Date.now() + studyTime * 60 * 1000;
+            focusPaused = false;
+            focusRemainingMs = studyTime * 60 * 1000;
+            focusEndAt = Date.now() + focusRemainingMs;
+            hideFocusPausedBar();
+            const circle = document.getElementById("focus-timer-circle");
+            if (circle) circle.classList.remove("paused");
+            const phase = document.getElementById("focus-phase");
+            if (phase) phase.textContent = "Pomodoro";
             updateFocusClock();
             focusInterval = setInterval(updateFocusClock, 250);
         }
@@ -3224,10 +3412,16 @@
 
             clearInterval(focusInterval);
             focusInterval = null;
+            focusRemainingMs = 0;
+            focusPaused = false;
+            hideFocusPausedBar();
             const phase = document.getElementById("focus-phase");
             const circle = document.getElementById("focus-timer-circle");
             if (phase) phase.textContent = "Time's up";
-            if (circle) circle.classList.add("done");
+            if (circle) {
+                circle.classList.add("done");
+                circle.classList.remove("paused");
+            }
             if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
         }
 
@@ -3235,7 +3429,10 @@
             clearInterval(focusInterval);
             focusInterval = null;
             showTimer = false;
+            focusPaused = false;
             focusEndAt = 0;
+            focusRemainingMs = studyTime * 60 * 1000;
+            hideFocusPausedBar();
             const wrap = document.getElementById("focus-timer-wrap");
             if (wrap) {
                 wrap.classList.remove("show");
@@ -3243,7 +3440,7 @@
             }
             closeFocusDrawer();
             const circle = document.getElementById("focus-timer-circle");
-            if (circle) circle.classList.remove("done");
+            if (circle) circle.classList.remove("done", "paused");
             const display = document.getElementById("focus-time-display");
             if (display) display.textContent = formatFocusClock(studyTime * 60);
             const phase = document.getElementById("focus-phase");
@@ -3325,22 +3522,34 @@
             circle.addEventListener("pointercancel", endDrag);
         }
 
-        function closeFocusMode() {
+        function endFocusSession() {
+            focusState = "idle";
+            focusPaused = false;
             const video = document.getElementById("focus-video");
             if (video) video.pause();
             clearInterval(focusInterval);
             focusInterval = null;
             showTimer = false;
             focusEndAt = 0;
-            focusState = "idle";
             closeFocusSetup(false);
             resetFocusTimerState();
             const overlay = document.getElementById("focus-mode");
             if (overlay) {
-                overlay.classList.remove("active", "ended");
+                overlay.classList.remove("active", "ended", "leaving");
                 overlay.setAttribute("aria-hidden", "true");
             }
-            document.body.classList.remove("focus-open");
+            document.body.classList.remove("focus-open", "focus-session");
+            exitFocusFullscreen();
+        }
+
+        function handleFocusFullscreenChange() {
+            if (focusState !== "playing") return;
+            if (isFocusFullscreen()) return;
+            pauseFocusSession();
+        }
+
+        function handleFocusVisibilityChange() {
+            if (document.hidden && focusState === "playing") pauseFocusSession();
         }
 
         function toggleFocusSound() {
@@ -5110,6 +5319,9 @@ You are speaking privately with the student after their exam. Stay fully in char
             }
             bindFocusTimerDrag();
             loadFocusTasks();
+            document.addEventListener("fullscreenchange", handleFocusFullscreenChange);
+            document.addEventListener("webkitfullscreenchange", handleFocusFullscreenChange);
+            document.addEventListener("visibilitychange", handleFocusVisibilityChange);
 
             const focusTodoList = document.getElementById("focus-todo-list");
             if (focusTodoList) {
