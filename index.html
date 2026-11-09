@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SAO: Study As a Otaku</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Lexend:wght@300;400;700&family=Kalam:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Lexend:wght@300;400;700&family=Kalam:wght@700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
@@ -252,6 +252,334 @@
         .surprise-picker-actions {
             position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%);
             display: flex; gap: 10px;
+        }
+
+        /* ============================================================
+           ANIME FOCUS MODE
+           ============================================================ */
+        body.focus-open { overflow: hidden; }
+        body.focus-open #surprise-btn { opacity: 0; pointer-events: none; }
+
+        #focus-setup {
+            position: fixed; inset: 0; z-index: 7000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 24px; background: rgba(4,6,12,.58);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity .3s ease, visibility .3s ease;
+        }
+        #focus-setup.active { opacity: 1; visibility: visible; pointer-events: auto; }
+        .focus-setup-card {
+            position: relative; width: min(440px, 92vw); padding: 30px 28px;
+            border-radius: 26px; overflow-x: hidden; overflow-y: auto;
+            max-height: calc(100vh - 32px); box-sizing: border-box;
+            background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(12,16,28,.84) 52%, rgba(24,16,36,.92));
+            border: 1px solid rgba(255,255,255,.24);
+            box-shadow: 0 30px 90px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.42);
+            color: #f6f7ff; font-family: 'Lexend', sans-serif;
+            transform: translateY(14px) scale(.97);
+            transition: transform .35s cubic-bezier(.2,.8,.2,1);
+        }
+        #focus-setup.active .focus-setup-card { transform: translateY(0) scale(1); }
+        .focus-setup-card::before {
+            content: ""; position: absolute; inset: -60% -30% auto;
+            height: 220px; pointer-events: none;
+            background:
+                radial-gradient(circle at 18% 50%, rgba(255,90,118,.34), transparent 34%),
+                radial-gradient(circle at 42% 42%, rgba(179,136,255,.34), transparent 34%),
+                radial-gradient(circle at 64% 55%, rgba(90,169,255,.3), transparent 34%),
+                radial-gradient(circle at 84% 46%, rgba(95,224,176,.26), transparent 34%);
+            filter: blur(22px);
+        }
+        .focus-setup-eyebrow {
+            position: relative; margin: 0 0 8px; font-family: 'Fredoka', sans-serif;
+            font-size: .72rem; font-weight: 700; letter-spacing: .18em;
+            text-transform: uppercase; color: #ffd166;
+        }
+        .focus-setup-card h2 {
+            position: relative; margin: 0 0 8px; font-family: 'Fredoka', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 1.8rem); line-height: 1.08; letter-spacing: -.01em;
+        }
+        .focus-setup-copy {
+            position: relative; margin: 0 0 22px; font-size: .88rem;
+            line-height: 1.58; color: rgba(244,247,255,.72);
+        }
+        .focus-time-field { position: relative; display: flex; flex-direction: column; gap: 9px; margin-bottom: 14px; }
+        .focus-time-field label {
+            font-size: .76rem; font-weight: 700; letter-spacing: .07em;
+            text-transform: uppercase; color: rgba(244,247,255,.78);
+        }
+        .focus-time-input-wrap {
+            display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+            border-radius: 16px; background: rgba(7,10,18,.72); box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,.18);
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        .focus-time-input-wrap:focus-within {
+            border-color: rgba(179,136,255,.85);
+            box-shadow: 0 0 0 3px rgba(179,136,255,.16);
+        }
+        #focus-minutes {
+            flex: 1; width: auto; min-width: 0; margin: 0; padding: 0;
+            border: 0; border-radius: 0; background: transparent; outline: none;
+            color: #fff; font-family: 'Orbitron', monospace; font-size: 1.45rem;
+            font-weight: 700; letter-spacing: .04em;
+        }
+        #focus-minutes::-webkit-outer-spin-button,
+        #focus-minutes::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        #focus-minutes { -moz-appearance: textfield; appearance: textfield; }
+        .focus-time-unit {
+            font-size: .76rem; font-weight: 700; letter-spacing: .1em;
+            text-transform: uppercase; color: rgba(244,247,255,.5);
+        }
+        .focus-presets { position: relative; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+        .focus-preset {
+            padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.06); color: rgba(255,255,255,.82);
+            font-family: 'Fredoka', sans-serif; font-size: .8rem; font-weight: 600;
+            cursor: pointer; transition: background .2s ease, border-color .2s ease, transform .2s ease;
+        }
+        .focus-preset:hover {
+            background: rgba(179,136,255,.18); border-color: rgba(179,136,255,.6);
+            transform: translateY(-1px);
+        }
+        .focus-setup-actions { position: relative; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+        .focus-primary-btn, .focus-ghost-btn {
+            border-radius: 999px; padding: 12px 20px; font-family: 'Fredoka', sans-serif;
+            font-weight: 600; font-size: .9rem; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .focus-primary-btn {
+            border: 0; color: #08101e;
+            background: linear-gradient(135deg, #ffd166, #b388ff 34%, #5aa9ff 68%, #5fe0b0);
+            box-shadow: 0 14px 34px rgba(90,169,255,.32);
+        }
+        .focus-primary-btn:hover { transform: translateY(-1px); box-shadow: 0 18px 40px rgba(179,136,255,.36); }
+        .focus-ghost-btn {
+            border: 1px solid rgba(255,255,255,.24);
+            background: rgba(255,255,255,.06); color: #fff;
+        }
+        .focus-ghost-btn:hover { background: rgba(255,255,255,.13); }
+
+        #focus-mode {
+            position: fixed; inset: 0; z-index: 6500; overflow: hidden;
+            background: #05060b; visibility: hidden; opacity: 0; pointer-events: none;
+            transition: opacity .55s ease, visibility .55s ease;
+        }
+        #focus-mode.active { visibility: visible; opacity: 1; pointer-events: auto; }
+        #focus-mode.ended {
+            background:
+                radial-gradient(circle at 16% 20%, rgba(255,90,118,.16), transparent 34%),
+                radial-gradient(circle at 84% 22%, rgba(179,136,255,.19), transparent 36%),
+                radial-gradient(circle at 50% 86%, rgba(90,169,255,.16), transparent 42%),
+                #07080d;
+        }
+        .focus-backdrop {
+            position: absolute; inset: 0; pointer-events: none; opacity: 0;
+            background:
+                radial-gradient(circle at 12% 18%, rgba(255,209,102,.12), transparent 28%),
+                radial-gradient(circle at 88% 24%, rgba(95,224,176,.12), transparent 30%),
+                radial-gradient(circle at 76% 88%, rgba(179,136,255,.14), transparent 32%),
+                radial-gradient(circle at 22% 82%, rgba(255,90,118,.12), transparent 30%);
+            transition: opacity 1.2s ease;
+        }
+        #focus-mode.ended .focus-backdrop { opacity: 1; }
+        #focus-video {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; background: #000; display: block;
+            transition: opacity 1.15s ease, filter 1.15s ease;
+        }
+        #focus-mode.ended #focus-video { opacity: 0; filter: blur(16px); }
+        .focus-vignette {
+            position: absolute; inset: 0; z-index: 1; pointer-events: none;
+            background:
+                radial-gradient(circle at 50% 46%, rgba(0,0,0,0) 32%, rgba(0,0,0,.22) 72%, rgba(0,0,0,.68) 100%),
+                linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 72%, rgba(0,0,0,.62) 100%);
+            transition: opacity .9s ease;
+        }
+        #focus-mode.ended .focus-vignette { opacity: .32; }
+        .focus-topbar {
+            position: absolute; top: 18px; left: 24px; right: 24px; z-index: 5;
+            display: flex; align-items: center; justify-content: space-between; gap: 14px;
+            transition: opacity .8s ease;
+        }
+        #focus-mode.ended .focus-topbar { opacity: .72; }
+        .focus-mode-label {
+            padding: 9px 15px; border-radius: 999px;
+            background: rgba(8,12,20,.6); border: 1px solid rgba(255,255,255,.2);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            font-size: .68rem; font-weight: 700; letter-spacing: .14em;
+            text-transform: uppercase; color: rgba(255,255,255,.9); white-space: nowrap;
+        }
+        .focus-topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+        #focus-timer-wrap {
+            position: fixed; left: 0; top: 0; width: 150px; height: 150px;
+            z-index: 6; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: scale(.7); transform-origin: center center;
+            transition: opacity .45s ease, transform .5s cubic-bezier(.2,.9,.3,1.25), visibility .45s ease;
+            touch-action: none;
+        }
+        #focus-timer-wrap.show {
+            opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1);
+        }
+        #focus-timer-wrap.dragging { transition: none; }
+        .focus-timer-circle {
+            position: relative; width: 150px; height: 150px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(20,20,30,.8);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 18px 44px rgba(0,0,0,.55), 0 0 30px rgba(179,136,255,.18);
+            cursor: grab; touch-action: none; user-select: none; isolation: isolate;
+        }
+        .focus-timer-circle:active, #focus-timer-wrap.dragging .focus-timer-circle { cursor: grabbing; }
+        .focus-timer-circle::before {
+            content: ""; position: absolute; inset: -4px; border-radius: 50%; z-index: 0;
+            background: conic-gradient(from 0deg,
+                #ff5a76 0deg, #b388ff 72deg, #5aa9ff 144deg,
+                #5fe0b0 216deg, #ffd166 288deg, #ff5a76 360deg);
+            animation: focusRingSpin 4.5s linear infinite;
+            filter: drop-shadow(0 0 10px rgba(90,169,255,.5));
+        }
+        .focus-timer-circle::after {
+            content: ""; position: absolute; inset: 3px; border-radius: 50%; z-index: 1;
+            background: rgba(15,16,26,.86);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .focus-timer-inner {
+            position: relative; z-index: 2; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 3px;
+            text-align: center; pointer-events: none;
+        }
+        .focus-timer-kicker {
+            font-family: 'Fredoka', sans-serif; font-size: .52rem; font-weight: 600;
+            letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.56);
+        }
+        #focus-time-display {
+            font-family: 'Orbitron', monospace; font-size: 1.6rem; font-weight: 700;
+            letter-spacing: .04em; line-height: 1; color: #f6fbff;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 7px rgba(90,169,255,.9), 0 0 18px rgba(179,136,255,.55);
+        }
+        #focus-phase {
+            font-family: 'Fredoka', sans-serif; font-size: .58rem; font-weight: 600;
+            letter-spacing: .14em; text-transform: uppercase; color: rgba(95,224,176,.92);
+        }
+        .focus-timer-circle.done::before {
+            animation-duration: 1.1s;
+            filter: drop-shadow(0 0 18px rgba(95,224,176,.85));
+        }
+        .focus-timer-circle.done #focus-time-display {
+            color: #5fe0b0; text-shadow: 0 0 10px rgba(95,224,176,.95);
+        }
+        @keyframes focusRingSpin { to { transform: rotate(360deg); } }
+
+        #focus-todo-toggle {
+            position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+            width: 36px; height: 36px; border-radius: 50%; z-index: 9;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,.32);
+            background: linear-gradient(135deg, rgba(179,136,255,.92), rgba(90,169,255,.92));
+            color: #fff; font-size: 1rem; cursor: pointer;
+            box-shadow: 0 8px 22px rgba(0,0,0,.42);
+            transition: transform .22s ease, box-shadow .22s ease;
+        }
+        #focus-todo-toggle:hover { transform: translateY(-50%) scale(1.08); }
+        #focus-todo-toggle.open {
+            transform: translateY(-50%) rotate(10deg) scale(1.06);
+            box-shadow: 0 0 0 4px rgba(179,136,255,.16), 0 8px 22px rgba(0,0,0,.42);
+        }
+        #focus-todo-drawer {
+            position: absolute; top: calc(100% + 16px); left: 50%; z-index: 8;
+            width: min(280px, 78vw); padding: 16px; border-radius: 20px;
+            box-sizing: border-box;
+            background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(12,14,24,.92));
+            border: 1px solid rgba(255,255,255,.2);
+            box-shadow: 0 24px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.28);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            color: #f4f7ff; opacity: 0; visibility: hidden; pointer-events: none;
+            transform: translate(-50%, -10px) scale(.96); transform-origin: top center;
+            transition: opacity .26s ease, transform .3s cubic-bezier(.2,.8,.2,1), visibility .3s ease;
+        }
+        #focus-todo-drawer.open {
+            opacity: 1; visibility: visible; pointer-events: auto;
+            transform: translate(-50%, 0) scale(1);
+        }
+        #focus-todo-drawer.above {
+            top: auto; bottom: calc(100% + 16px); transform-origin: bottom center;
+        }
+        .focus-todo-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+        .focus-todo-title { font-family: 'Fredoka', sans-serif; font-size: .88rem; font-weight: 600; letter-spacing: .03em; }
+        .focus-todo-count {
+            font-size: .64rem; font-weight: 700; letter-spacing: .1em;
+            text-transform: uppercase; color: rgba(255,255,255,.5); white-space: nowrap;
+        }
+        .focus-todo-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        #focus-todo-input {
+            flex: 1; width: auto; min-width: 0; margin: 0; padding: 9px 11px; border-radius: 11px;
+            border: 1px solid rgba(255,255,255,.18); background: rgba(5,8,15,.7);
+            color: #fff; font-family: 'Lexend', sans-serif; font-size: .76rem; outline: none;
+        }
+        #focus-todo-input::placeholder { color: rgba(255,255,255,.4); }
+        #focus-todo-input:focus {
+            border-color: rgba(95,224,176,.75);
+            box-shadow: 0 0 0 3px rgba(95,224,176,.12);
+        }
+        #focus-todo-add {
+            width: 36px; flex: 0 0 36px; border: 0; border-radius: 11px;
+            background: linear-gradient(135deg, #5fe0b0, #5aa9ff);
+            color: #06101b; font-size: 1.15rem; font-weight: 700; cursor: pointer;
+        }
+        #focus-todo-add:hover { filter: brightness(1.08); }
+        #focus-todo-list {
+            max-height: 178px; overflow-y: auto; display: flex;
+            flex-direction: column; gap: 4px; padding-right: 2px;
+        }
+        .focus-todo-item {
+            display: flex; align-items: center; gap: 8px; padding: 6px 7px;
+            border-radius: 9px; transition: background .2s ease;
+        }
+        .focus-todo-item:hover { background: rgba(255,255,255,.06); }
+        .focus-todo-item label {
+            flex: 1; display: flex; align-items: center; gap: 8px;
+            cursor: pointer; font-size: .75rem; line-height: 1.35;
+            color: rgba(255,255,255,.86);
+        }
+        .focus-todo-item input[type="checkbox"] {
+            appearance: none; -webkit-appearance: none;
+            width: 15px; height: 15px; flex: 0 0 15px; border-radius: 5px;
+            border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.05);
+            cursor: pointer; display: grid; place-items: center; margin: 0;
+            transition: background .18s ease, border-color .18s ease;
+        }
+        .focus-todo-item input[type="checkbox"]::after {
+            content: "✓"; font-size: 10px; line-height: 1; color: #05131f;
+            transform: scale(0); transition: transform .15s ease;
+        }
+        .focus-todo-item input[type="checkbox"]:checked {
+            background: #5fe0b0; border-color: #5fe0b0;
+        }
+        .focus-todo-item input[type="checkbox"]:checked::after { transform: scale(1); }
+        .focus-todo-item.done label span {
+            text-decoration: line-through; color: rgba(255,255,255,.4);
+        }
+        .focus-todo-item [data-action="remove"] {
+            border: 0; background: transparent; color: rgba(255,255,255,.38);
+            font-size: 1rem; line-height: 1; cursor: pointer; padding: 2px 4px;
+            transition: color .2s ease;
+        }
+        .focus-todo-item [data-action="remove"]:hover { color: #ff8fa3; }
+        .focus-todo-empty {
+            margin: 7px 0 3px; font-size: .72rem; line-height: 1.4;
+            text-align: center; color: rgba(255,255,255,.4);
+        }
+
+        @media (max-width: 600px) {
+            .focus-topbar { top: 12px; left: 12px; right: 12px; }
+            .focus-mode-label { display: none; }
+            .focus-topbar-actions { margin-left: auto; }
+            #focus-timer-wrap, .focus-timer-circle { width: 132px; height: 132px; }
+            #focus-time-display { font-size: 1.38rem; }
+            #focus-todo-drawer { width: min(260px, 82vw); }
         }
 
         /* ============================================================
@@ -1612,7 +1940,7 @@
         </div>
     </div>
 
-    <button id="surprise-btn" type="button" onclick="openSurpriseIntro()" aria-label="Play the GK surprise intro">Surprise me</button>
+    <button id="surprise-btn" type="button" onclick="openFocusSetup()" aria-label="Start Anime Focus Mode with a Pomodoro timer">Surprise me</button>
 
     <div id="surprise-intro" role="dialog" aria-modal="true" aria-hidden="true">
         <video id="surprise-video" playsinline preload="auto"></video>
@@ -1638,6 +1966,70 @@
             </div>
         </div>
         <p class="surprise-status" id="surprise-status"></p>
+    </div>
+
+    <!-- Anime Focus Mode: time picker -->
+    <div id="focus-setup" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="focus-setup-title">
+        <div class="focus-setup-card">
+            <p class="focus-setup-eyebrow">Anime Focus Mode</p>
+            <h2 id="focus-setup-title">Lock in with the Nakano sisters</h2>
+            <p class="focus-setup-copy">Choose a focus block, press start, and let the intro carry you into deep study. The timer floats above everything so you can keep working.</p>
+            <div class="focus-time-field">
+                <label for="focus-minutes">Set Focus Time (Minutes):</label>
+                <div class="focus-time-input-wrap">
+                    <input id="focus-minutes" type="number" min="1" max="180" step="1" value="25" inputmode="numeric">
+                    <span class="focus-time-unit">min</span>
+                </div>
+            </div>
+            <div class="focus-presets" aria-label="Quick focus-time presets">
+                <button type="button" class="focus-preset" onclick="setFocusPreset(15)">15 min</button>
+                <button type="button" class="focus-preset" onclick="setFocusPreset(25)">25 min</button>
+                <button type="button" class="focus-preset" onclick="setFocusPreset(50)">50 min</button>
+                <button type="button" class="focus-preset" onclick="setFocusPreset(90)">90 min</button>
+            </div>
+            <div class="focus-setup-actions">
+                <button type="button" class="focus-ghost-btn" onclick="closeFocusSetup()">Cancel</button>
+                <button type="button" class="focus-primary-btn" onclick="commenceFocus()">Commence Focus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anime Focus Mode: full-screen video + floating timer -->
+    <div id="focus-mode" aria-hidden="true">
+        <div class="focus-backdrop"></div>
+        <!-- Custom intro video lives at the project root as suprise.mp4. -->
+        <video id="focus-video" src="suprise.mp4" playsinline preload="metadata"></video>
+        <div class="focus-vignette"></div>
+        <div class="focus-topbar">
+            <span class="focus-mode-label" id="focus-mode-label">Anime focus mode · intro</span>
+            <div class="focus-topbar-actions">
+                <button type="button" class="ghost-btn" id="focus-sound" onclick="toggleFocusSound()">Mute</button>
+                <button type="button" class="ghost-btn" id="focus-skip" onclick="skipFocusVideo()">Skip intro →</button>
+                <button type="button" class="ghost-btn" onclick="closeFocusMode()">Exit focus</button>
+            </div>
+        </div>
+
+        <div id="focus-timer-wrap" aria-hidden="true">
+            <div id="focus-timer-circle" class="focus-timer-circle" role="timer" aria-label="Draggable Pomodoro timer">
+                <div class="focus-timer-inner">
+                    <span class="focus-timer-kicker">Nakano Focus</span>
+                    <span id="focus-time-display" aria-live="polite">25:00</span>
+                    <span id="focus-phase">Pomodoro</span>
+                </div>
+            </div>
+            <button id="focus-todo-toggle" type="button" onclick="toggleFocusDrawer()" aria-label="Open study checklist" aria-expanded="false">📋</button>
+            <div id="focus-todo-drawer" aria-hidden="true">
+                <div class="focus-todo-head">
+                    <span class="focus-todo-title">Study checklist</span>
+                    <span class="focus-todo-count" id="focus-todo-count">0 left</span>
+                </div>
+                <div class="focus-todo-input-row">
+                    <input id="focus-todo-input" type="text" maxlength="140" placeholder="Add task..." onkeydown="if(event.key==='Enter'){event.preventDefault();addFocusTask();}">
+                    <button id="focus-todo-add" type="button" onclick="addFocusTask()" aria-label="Add task">+</button>
+                </div>
+                <div id="focus-todo-list"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -2003,7 +2395,10 @@
             document.getElementById("btn-gk").classList.toggle("active", !isSubject);
             document.getElementById("btn-subject").classList.toggle("active", isSubject);
             positionModeIndicator();
-            if (isSubject) closeSurpriseIntro();
+            if (isSubject) {
+                closeSurpriseIntro();
+                closeFocusMode();
+            }
 
             const video = document.getElementById("subject-bg");
             if (isSubject) {
@@ -2648,6 +3043,436 @@
             hideSurpriseFace();
             document.body.classList.remove("surprise-open");
             setSurpriseStatus("");
+        }
+
+        // ============================================================
+        // ANIME FOCUS MODE — Pomodoro + intro video + floating timer
+        // ============================================================
+        const FOCUS_VIDEO_SOURCE = "suprise.mp4";
+        const FOCUS_TASKS_KEY = "animeFocusTasks:v1";
+
+        let focusState = "idle";          // 'idle' | 'setting-time' | 'playing'
+        let studyTime = 25;               // minutes
+        let showTimer = false;
+        let focusEndAt = 0;
+        let focusInterval = null;
+        let isTodoOpen = false;
+        let focusTasks = [];
+        let focusDrag = null;
+
+        function formatFocusClock(seconds) {
+            const total = Math.max(0, Math.ceil(Number(seconds) || 0));
+            const minutes = Math.floor(total / 60);
+            const remainder = total % 60;
+            return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+        }
+
+        function updateFocusSoundButton() {
+            const video = document.getElementById("focus-video");
+            const button = document.getElementById("focus-sound");
+            if (button && video) button.textContent = video.muted ? "Sound on" : "Mute";
+        }
+
+        function setFocusPreset(minutes) {
+            const input = document.getElementById("focus-minutes");
+            if (input) input.value = minutes;
+        }
+
+        function openFocusSetup() {
+            if (!document.body.classList.contains("mode-gk")) return;
+            closeSurpriseIntro();
+            focusState = "setting-time";
+            document.body.classList.add("focus-open");
+            const modal = document.getElementById("focus-setup");
+            if (modal) {
+                modal.classList.add("active");
+                modal.setAttribute("aria-hidden", "false");
+            }
+            const input = document.getElementById("focus-minutes");
+            if (input) {
+                input.value = studyTime || 25;
+                setTimeout(() => {
+                    input.focus();
+                    input.select();
+                }, 70);
+            }
+        }
+
+        function closeFocusSetup(backToIdle = true) {
+            const modal = document.getElementById("focus-setup");
+            if (modal) {
+                modal.classList.remove("active");
+                modal.setAttribute("aria-hidden", "true");
+            }
+            if (backToIdle && focusState === "setting-time") {
+                focusState = "idle";
+                document.body.classList.remove("focus-open");
+            }
+        }
+
+        function commenceFocus() {
+            const input = document.getElementById("focus-minutes");
+            const raw = Number(input && input.value);
+            const minutes = Number.isFinite(raw) && raw > 0 ? raw : 25;
+            studyTime = Math.min(180, Math.max(1, Math.round(minutes)));
+            if (input) input.value = studyTime;
+
+            focusState = "playing";
+            closeFocusSetup(false);
+            resetFocusTimerState();
+            resetFocusTimerPosition();
+            document.body.classList.add("focus-open");
+
+            const overlay = document.getElementById("focus-mode");
+            if (overlay) {
+                overlay.classList.add("active");
+                overlay.classList.remove("ended");
+                overlay.setAttribute("aria-hidden", "false");
+            }
+            const label = document.getElementById("focus-mode-label");
+            if (label) label.textContent = "Anime focus mode · intro";
+            const skip = document.getElementById("focus-skip");
+            if (skip) skip.style.display = "";
+
+            startFocusVideo();
+        }
+
+        function startFocusVideo() {
+            const video = document.getElementById("focus-video");
+            if (!video) {
+                finishFocusVideo();
+                return;
+            }
+            if (!video.getAttribute("src")) video.src = FOCUS_VIDEO_SOURCE;
+            try {
+                video.pause();
+                video.currentTime = 0;
+            } catch (error) {}
+            video.muted = false;
+            updateFocusSoundButton();
+
+            const playAttempt = video.play();
+            if (playAttempt && typeof playAttempt.catch === "function") {
+                playAttempt.then(updateFocusSoundButton).catch(() => {
+                    video.muted = true;
+                    updateFocusSoundButton();
+                    const mutedAttempt = video.play();
+                    if (mutedAttempt && typeof mutedAttempt.catch === "function") {
+                        mutedAttempt.catch(() => finishFocusVideo());
+                    }
+                });
+            }
+        }
+
+        function handleFocusVideoError() {
+            // If the custom intro cannot load, skip straight to the dark study
+            // screen with the timer so the focus session still works.
+            finishFocusVideo();
+        }
+
+        function handleFocusTimeUpdate() {
+            const video = document.getElementById("focus-video");
+            const overlay = document.getElementById("focus-mode");
+            if (!video || !overlay || !overlay.classList.contains("active")) return;
+            if (!showTimer && video.currentTime >= 20) revealFocusTimer();
+        }
+
+        function handleFocusVideoEnded() {
+            finishFocusVideo();
+        }
+
+        function finishFocusVideo() {
+            const overlay = document.getElementById("focus-mode");
+            if (!overlay || !overlay.classList.contains("active")) return;
+            const video = document.getElementById("focus-video");
+            if (video) video.pause();
+
+            if (!showTimer) revealFocusTimer();
+            overlay.classList.add("ended");
+            const label = document.getElementById("focus-mode-label");
+            if (label) label.textContent = "Anime focus mode · study";
+            const skip = document.getElementById("focus-skip");
+            if (skip) skip.style.display = "none";
+        }
+
+        function skipFocusVideo() {
+            finishFocusVideo();
+        }
+
+        function revealFocusTimer() {
+            if (showTimer) return;
+            showTimer = true;
+            const wrap = document.getElementById("focus-timer-wrap");
+            if (!wrap) return;
+            wrap.classList.add("show");
+            wrap.setAttribute("aria-hidden", "false");
+            startFocusCountdown();
+        }
+
+        function startFocusCountdown() {
+            clearInterval(focusInterval);
+            focusEndAt = Date.now() + studyTime * 60 * 1000;
+            updateFocusClock();
+            focusInterval = setInterval(updateFocusClock, 250);
+        }
+
+        function updateFocusClock() {
+            const remaining = Math.max(0, (focusEndAt - Date.now()) / 1000);
+            const display = document.getElementById("focus-time-display");
+            if (display) display.textContent = formatFocusClock(remaining);
+            if (remaining > 0) return;
+
+            clearInterval(focusInterval);
+            focusInterval = null;
+            const phase = document.getElementById("focus-phase");
+            const circle = document.getElementById("focus-timer-circle");
+            if (phase) phase.textContent = "Time's up";
+            if (circle) circle.classList.add("done");
+            if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
+        }
+
+        function resetFocusTimerState() {
+            clearInterval(focusInterval);
+            focusInterval = null;
+            showTimer = false;
+            focusEndAt = 0;
+            const wrap = document.getElementById("focus-timer-wrap");
+            if (wrap) {
+                wrap.classList.remove("show");
+                wrap.setAttribute("aria-hidden", "true");
+            }
+            closeFocusDrawer();
+            const circle = document.getElementById("focus-timer-circle");
+            if (circle) circle.classList.remove("done");
+            const display = document.getElementById("focus-time-display");
+            if (display) display.textContent = formatFocusClock(studyTime * 60);
+            const phase = document.getElementById("focus-phase");
+            if (phase) phase.textContent = "Pomodoro";
+        }
+
+        function resetFocusTimerPosition() {
+            const wrap = document.getElementById("focus-timer-wrap");
+            if (!wrap) return;
+            const size = wrap.offsetWidth || 150;
+            const margin = window.innerWidth <= 600 ? 14 : 24;
+            const topOffset = window.innerWidth <= 600 ? 76 : 96;
+            const left = Math.max(margin, window.innerWidth - size - margin);
+            const maxTop = Math.max(margin, window.innerHeight - size - margin);
+            const top = Math.min(Math.max(topOffset, margin), maxTop);
+            wrap.style.left = `${left}px`;
+            wrap.style.top = `${top}px`;
+        }
+
+        function clampFocusTimerPosition() {
+            if (!showTimer) return;
+            const wrap = document.getElementById("focus-timer-wrap");
+            if (!wrap) return;
+            const size = wrap.offsetWidth || 150;
+            const margin = 16;
+            const rect = wrap.getBoundingClientRect();
+            const left = Math.min(Math.max(margin, rect.left), window.innerWidth - size - margin);
+            const top = Math.min(Math.max(margin, rect.top), window.innerHeight - size - margin);
+            wrap.style.left = `${left}px`;
+            wrap.style.top = `${top}px`;
+        }
+
+        function bindFocusTimerDrag() {
+            const wrap = document.getElementById("focus-timer-wrap");
+            const circle = document.getElementById("focus-timer-circle");
+            if (!wrap || !circle) return;
+
+            circle.addEventListener("pointerdown", (event) => {
+                if (event.button !== 0) return;
+                if (event.target.closest("button, input, label, a")) return;
+                const rect = wrap.getBoundingClientRect();
+                focusDrag = {
+                    pointerId: event.pointerId,
+                    offsetX: event.clientX - rect.left,
+                    offsetY: event.clientY - rect.top,
+                    width: wrap.offsetWidth || 150,
+                    height: wrap.offsetHeight || 150
+                };
+                wrap.style.left = `${rect.left}px`;
+                wrap.style.top = `${rect.top}px`;
+                wrap.classList.add("dragging");
+                try {
+                    circle.setPointerCapture(event.pointerId);
+                } catch (error) {}
+                event.preventDefault();
+            });
+
+            circle.addEventListener("pointermove", (event) => {
+                if (!focusDrag || focusDrag.pointerId !== event.pointerId) return;
+                const margin = 16;
+                const maxLeft = window.innerWidth - focusDrag.width - margin;
+                const maxTop = window.innerHeight - focusDrag.height - margin;
+                const left = Math.min(Math.max(margin, event.clientX - focusDrag.offsetX), maxLeft);
+                const top = Math.min(Math.max(margin, event.clientY - focusDrag.offsetY), maxTop);
+                wrap.style.left = `${left}px`;
+                wrap.style.top = `${top}px`;
+                if (isTodoOpen) positionFocusDrawer();
+            });
+
+            const endDrag = (event) => {
+                if (!focusDrag || focusDrag.pointerId !== event.pointerId) return;
+                focusDrag = null;
+                wrap.classList.remove("dragging");
+                try {
+                    circle.releasePointerCapture(event.pointerId);
+                } catch (error) {}
+            };
+            circle.addEventListener("pointerup", endDrag);
+            circle.addEventListener("pointercancel", endDrag);
+        }
+
+        function closeFocusMode() {
+            const video = document.getElementById("focus-video");
+            if (video) video.pause();
+            clearInterval(focusInterval);
+            focusInterval = null;
+            showTimer = false;
+            focusEndAt = 0;
+            focusState = "idle";
+            closeFocusSetup(false);
+            resetFocusTimerState();
+            const overlay = document.getElementById("focus-mode");
+            if (overlay) {
+                overlay.classList.remove("active", "ended");
+                overlay.setAttribute("aria-hidden", "true");
+            }
+            document.body.classList.remove("focus-open");
+        }
+
+        function toggleFocusSound() {
+            const video = document.getElementById("focus-video");
+            if (!video) return;
+            video.muted = !video.muted;
+            if (!video.muted) video.play().catch(() => {});
+            updateFocusSoundButton();
+        }
+
+        function positionFocusDrawer() {
+            const wrap = document.getElementById("focus-timer-wrap");
+            const drawer = document.getElementById("focus-todo-drawer");
+            if (!wrap || !drawer) return;
+            const wrapRect = wrap.getBoundingClientRect();
+            const timerWidth = wrap.offsetWidth || 150;
+            const timerHeight = wrap.offsetHeight || 150;
+            const drawerWidth = drawer.offsetWidth || 280;
+            const padding = 12;
+
+            let centerX = timerWidth / 2;
+            const viewportLeft = wrapRect.left + centerX - drawerWidth / 2;
+            let shift = 0;
+            if (viewportLeft < padding) shift = padding - viewportLeft;
+            const overflowRight = viewportLeft + shift + drawerWidth - (window.innerWidth - padding);
+            if (overflowRight > 0) shift -= overflowRight;
+            drawer.style.left = `${centerX + shift}px`;
+
+            const spaceBelow = window.innerHeight - (wrapRect.top + timerHeight + 16);
+            const spaceAbove = wrapRect.top - 16;
+            drawer.classList.toggle("above", spaceBelow < 230 && spaceAbove > spaceBelow);
+        }
+
+        function toggleFocusDrawer() {
+            if (!showTimer) return;
+            isTodoOpen = !isTodoOpen;
+            const drawer = document.getElementById("focus-todo-drawer");
+            const button = document.getElementById("focus-todo-toggle");
+            if (drawer) {
+                drawer.classList.toggle("open", isTodoOpen);
+                drawer.setAttribute("aria-hidden", String(!isTodoOpen));
+            }
+            if (button) {
+                button.classList.toggle("open", isTodoOpen);
+                button.setAttribute("aria-expanded", String(isTodoOpen));
+            }
+            if (isTodoOpen) positionFocusDrawer();
+        }
+
+        function closeFocusDrawer() {
+            isTodoOpen = false;
+            const drawer = document.getElementById("focus-todo-drawer");
+            const button = document.getElementById("focus-todo-toggle");
+            if (drawer) {
+                drawer.classList.remove("open", "above");
+                drawer.setAttribute("aria-hidden", "true");
+                drawer.style.left = "";
+            }
+            if (button) {
+                button.classList.remove("open");
+                button.setAttribute("aria-expanded", "false");
+            }
+        }
+
+        function saveFocusTasks() {
+            try {
+                localStorage.setItem(FOCUS_TASKS_KEY, JSON.stringify(focusTasks));
+            } catch (error) {}
+        }
+
+        function loadFocusTasks() {
+            try {
+                const raw = localStorage.getItem(FOCUS_TASKS_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                focusTasks = Array.isArray(parsed)
+                    ? parsed
+                        .filter(task => task && typeof task.text === "string")
+                        .slice(0, 30)
+                        .map(task => ({ text: task.text.slice(0, 140), done: Boolean(task.done) }))
+                    : [];
+            } catch (error) {
+                focusTasks = [];
+            }
+            renderFocusTasks();
+        }
+
+        function renderFocusTasks() {
+            const list = document.getElementById("focus-todo-list");
+            if (!list) return;
+            if (!focusTasks.length) {
+                list.innerHTML = `<p class="focus-todo-empty">No tasks yet. Add one small win.</p>`;
+            } else {
+                list.innerHTML = focusTasks.map((task, index) => `
+                    <div class="focus-todo-item${task.done ? " done" : ""}" data-index="${index}">
+                        <label>
+                            <input type="checkbox" data-action="toggle" ${task.done ? "checked" : ""} aria-label="Mark task done">
+                            <span>${escapeSubjectHtml(task.text)}</span>
+                        </label>
+                        <button type="button" data-action="remove" aria-label="Delete task">×</button>
+                    </div>
+                `).join("");
+            }
+            const count = focusTasks.filter(task => !task.done).length;
+            const countEl = document.getElementById("focus-todo-count");
+            if (countEl) countEl.textContent = `${count} left`;
+        }
+
+        function addFocusTask() {
+            const input = document.getElementById("focus-todo-input");
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+            focusTasks.push({ text: text.slice(0, 140), done: false });
+            input.value = "";
+            saveFocusTasks();
+            renderFocusTasks();
+            input.focus();
+        }
+
+        function toggleFocusTask(index) {
+            const task = focusTasks[index];
+            if (!task) return;
+            task.done = !task.done;
+            saveFocusTasks();
+            renderFocusTasks();
+        }
+
+        function removeFocusTask(index) {
+            if (!Number.isInteger(index) || index < 0 || index >= focusTasks.length) return;
+            focusTasks.splice(index, 1);
+            saveFocusTasks();
+            renderFocusTasks();
         }
 
         function buildTeacherCards() {
@@ -4276,11 +5101,54 @@ You are speaking privately with the student after their exam. Stay fully in char
             buildTeacherCards();
             positionModeIndicator();
             document.getElementById("sub-refs").addEventListener("change", handleSubjectRefs);
-            window.addEventListener("resize", positionModeIndicator);
-            document.addEventListener("keydown", (event) => {
-                if (event.key === "Escape") closeSurpriseIntro();
+
+            const focusVideo = document.getElementById("focus-video");
+            if (focusVideo) {
+                focusVideo.addEventListener("timeupdate", handleFocusTimeUpdate);
+                focusVideo.addEventListener("ended", handleFocusVideoEnded);
+                focusVideo.addEventListener("error", handleFocusVideoError);
+            }
+            bindFocusTimerDrag();
+            loadFocusTasks();
+
+            const focusTodoList = document.getElementById("focus-todo-list");
+            if (focusTodoList) {
+                focusTodoList.addEventListener("change", (event) => {
+                    const checkbox = event.target.closest('input[data-action="toggle"]');
+                    if (!checkbox) return;
+                    const item = checkbox.closest(".focus-todo-item");
+                    if (item) toggleFocusTask(Number(item.dataset.index));
+                });
+                focusTodoList.addEventListener("click", (event) => {
+                    const remove = event.target.closest('[data-action="remove"]');
+                    if (!remove) return;
+                    const item = remove.closest(".focus-todo-item");
+                    if (item) removeFocusTask(Number(item.dataset.index));
+                });
+            }
+
+            window.addEventListener("resize", () => {
+                positionModeIndicator();
+                clampFocusTimerPosition();
+                if (isTodoOpen) positionFocusDrawer();
             });
-            window.addEventListener("pagehide", stopSurpriseCamera);
+            document.addEventListener("keydown", (event) => {
+                if (event.key !== "Escape") return;
+                if (focusState === "setting-time") {
+                    closeFocusSetup();
+                    return;
+                }
+                if (isTodoOpen) {
+                    closeFocusDrawer();
+                    return;
+                }
+                closeSurpriseIntro();
+            });
+            window.addEventListener("pagehide", () => {
+                stopSurpriseCamera();
+                const video = document.getElementById("focus-video");
+                if (video) video.pause();
+            });
             if (document.fonts && document.fonts.ready) {
                 document.fonts.ready.then(positionModeIndicator);
             }
