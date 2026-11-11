@@ -44,6 +44,9 @@ VS Code Live Server — the `/api/chat` and `/api/search` routes need Node.
   output plus the two functions in `api/`.
 - `vercel.json` raises the serverless timeout to 60 seconds, which is enough for
   a single AI question or grading call.
+- Keep MP4 files in normal Git, **not Git LFS**. GitHub Pages and Vercel serve
+  the committed file as-is and do not resolve LFS pointers, so LFS videos show
+  up as tiny text files and will not play.
 
 ## Question format rules
 
