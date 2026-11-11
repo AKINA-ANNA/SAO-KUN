@@ -29,25 +29,48 @@
         .desk-container {
             width: 95%; max-width: 1100px; height: 85vh;
             display: flex; gap: 20px; position: relative;
+            box-sizing: border-box;
+            padding-left: clamp(0px, 25vw, 350px);
         }
 
-        /* --- Itsuki Sprite Side --- */
+        /* --- Itsuki Floating Widget --- */
         .itsuki-sprite-area {
-            flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
-            align-items: center; position: relative;
+            position: absolute; right: auto; bottom: 0;
+            left: calc(clamp(0px, 25vw, 350px) - clamp(190px, 23vw, 310px) - 22px);
+            width: clamp(190px, 23vw, 310px); z-index: 900;
+            display: flex; flex-direction: column; justify-content: flex-end;
+            align-items: center; pointer-events: none;
         }
+
+        /* Keep Itsuki off the GK home/setup screen. */
+        body.mode-gk:not(.gk-quiz) .itsuki-sprite-area { display: none; }
+
+        /* Leave room for the Surprise Me button below Itsuki during the quiz. */
+        body.gk-quiz .itsuki-sprite-area { bottom: 72px; }
 
         .sprite-img {
-            max-width: 100%; max-height: 80%; object-fit: contain;
-            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));
+            max-width: 100%; max-height: 58vh; object-fit: contain;
+            filter: drop-shadow(0 18px 42px rgba(0,0,0,.5));
+            animation: floatingCharacter 6s ease-in-out infinite;
         }
 
         .speech-bubble {
-            position: absolute; top: 10%; background: white;
-            padding: 20px; border-radius: 20px; width: 80%;
-            border: 3px solid var(--itsuki-red); font-family: 'Kalam', cursive;
-            font-size: 1.2rem; box-shadow: 10px 10px 0px rgba(0,0,0,0.2);
-            display: none; z-index: 10;
+            position: absolute; left: 0; right: auto; bottom: calc(100% + 14px); top: auto;
+            width: 100%; max-height: 30vh; overflow-y: auto;
+            box-sizing: border-box;
+            background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(255,255,255,.84));
+            backdrop-filter: blur(16px) saturate(150%);
+            -webkit-backdrop-filter: blur(16px) saturate(150%);
+            padding: 16px 18px; border-radius: 18px;
+            border: 1px solid rgba(255,255,255,.75); color: var(--ink);
+            font-family: 'Kalam', cursive; font-size: 1.05rem; line-height: 1.35;
+            box-shadow: 0 16px 40px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.9);
+            display: none; z-index: 10; pointer-events: auto;
+        }
+
+        @keyframes floatingCharacter {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-7px); }
         }
 
         /* --- Notebook Side --- */
@@ -92,10 +115,15 @@
 
         .option {
             padding: 15px; border: 2px solid #ddd; border-radius: 10px;
-            margin-bottom: 12px; cursor: pointer; transition: 0.2s;
+            margin-bottom: 12px; cursor: pointer; transition: background-color .2s ease, border-color .2s ease;
             font-weight: 600; display: flex; align-items: center;
+            -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+            -webkit-user-select: none; user-select: none;
         }
-        .option:hover { background: #fffcf0; border-color: var(--itsuki-red); transform: rotate(-1deg); }
+        /* Touch screens keep a sticky :hover state, which made tapped options tilt. */
+        @media (hover: hover) and (pointer: fine) {
+            .option:hover { background: #fffcf0; border-color: var(--itsuki-red); }
+        }
         .option.correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
         .option.wrong { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
 
@@ -160,7 +188,7 @@
         .mode-btn:focus-visible { outline: 2px solid var(--star); outline-offset: 3px; }
 
         #surprise-btn {
-            position: fixed; left: 20px; bottom: 20px; z-index: 3000;
+            position: fixed; left: 20px; right: auto; bottom: 20px; z-index: 3000;
             display: none; align-items: center; gap: 8px;
             padding: 12px 18px; border-radius: 999px;
             border: 1px solid rgba(255,255,255,.42);
@@ -697,23 +725,38 @@
         .subject-view { display: none; flex: 1; min-height: 0; }
         .subject-view.active { display: flex; }
         .subject-layout {
+            position: relative;
             display: flex; gap: clamp(16px, 3vw, 40px);
             flex: 1; min-height: 0; width: 100%;
+            box-sizing: border-box;
+            padding-left: clamp(0px, 23vw, 370px);
         }
         .subject-sprite-area {
-            flex: .85; min-width: 0; display: flex; flex-direction: column;
-            justify-content: flex-end; align-items: center; position: relative;
+            position: absolute; right: auto; bottom: 0;
+            left: calc(clamp(0px, 23vw, 370px) - clamp(190px, 23vw, 330px) - 24px);
+            width: clamp(190px, 23vw, 330px); z-index: 20;
+            display: flex; flex-direction: column;
+            justify-content: flex-end; align-items: center;
+            pointer-events: none;
         }
         .subject-sprite {
-            max-width: 100%; max-height: 78vh; object-fit: contain;
+            max-width: 100%; max-height: 64vh; object-fit: contain;
             filter: drop-shadow(0 18px 42px rgba(0,0,0,.55));
             transition: opacity .3s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+            animation: floatingCharacter 7s ease-in-out infinite;
         }
         .subject-bubble {
-            position: absolute; top: 7%; width: min(92%, 360px); z-index: 5;
-            padding: 16px 18px; border-radius: 20px; display: none;
-            font-family: 'Kalam', cursive; font-size: 1.05rem; line-height: 1.35;
-            color: #fff; max-height: 50vh; overflow-y: auto;
+            position: absolute; left: 0; right: auto; bottom: calc(100% + 14px); top: auto;
+            width: 100%; z-index: 5; max-height: 32vh; overflow-y: auto;
+            box-sizing: border-box;
+            padding: 15px 17px; border-radius: 18px; display: none;
+            font-family: 'Kalam', cursive; font-size: 1rem; line-height: 1.35;
+            color: #fff; pointer-events: none;
+            background: linear-gradient(135deg, rgba(255,255,255,.2) 0%, rgba(255,255,255,.08) 42%, rgba(8,12,20,.62) 100%), rgba(8,12,20,.38);
+            border: 1px solid rgba(255,255,255,.32);
+            backdrop-filter: blur(26px) saturate(175%);
+            -webkit-backdrop-filter: blur(26px) saturate(175%);
+            box-shadow: 0 16px 44px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.42);
         }
         .subject-bubble strong { color: var(--accent); }
         .bubble-expl { font-family: 'Lexend', sans-serif; font-size: .82rem; opacity: .78; display: inline-block; margin-top: 6px; }
@@ -1518,11 +1561,31 @@
            ============================================================ */
         @media (max-width: 900px) {
             #subject-shell { padding: 64px 14px 14px; }
-            .subject-layout { flex-direction: column; overflow-y: auto; }
-            .subject-sprite-area { flex: 0 0 auto; min-height: 22vh; }
-            .subject-sprite { max-height: 22vh; }
-            .subject-bubble { position: relative; top: auto; width: 100%; margin-bottom: 10px; }
-            .subject-panel { flex: 1 0 auto; padding: 22px 20px; }
+            .subject-layout {
+                flex-direction: column; overflow: hidden;
+                padding-left: 0;
+            }
+            .subject-sprite-area {
+                position: fixed; width: 132px; left: 10px; right: auto; bottom: 8px;
+            }
+            .subject-sprite {
+                width: 104px; height: 104px; max-height: none;
+                border-radius: 50%; object-fit: cover; object-position: top center;
+                border: 2px solid rgba(255,255,255,.5);
+                background: radial-gradient(circle at 50% 70%, rgba(255,255,255,.18), rgba(0,0,0,.34));
+                box-shadow: 0 14px 34px rgba(0,0,0,.4);
+            }
+            .subject-bubble {
+                width: min(210px, 58vw); max-height: 24vh;
+                left: 0; right: auto; bottom: calc(100% + 8px);
+                font-size: .78rem; padding: 9px 11px; border-radius: 14px;
+            }
+            .subject-panel {
+                flex: 1 1 auto; min-height: 0;
+                padding: 22px 20px 210px;
+                -webkit-overflow-scrolling: touch;
+                scroll-padding-bottom: 210px;
+            }
             .teacher-grid { grid-template-columns: 1fr; }
             .teacher-img-wrap { height: 190px; }
             .teacher-modal-inner { padding: 22px 18px; }
@@ -1550,33 +1613,30 @@
                 gap: 12px;
             }
             .itsuki-sprite-area {
-                flex: 0 0 auto;
-                min-height: auto;
-                width: 100%;
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                justify-content: center;
-                gap: 12px;
+                position: fixed; left: 10px; right: auto; bottom: 8px;
+                width: 112px; display: flex; flex-direction: column;
+                align-items: center; justify-content: flex-end;
+                gap: 0; z-index: 900; pointer-events: none;
             }
+            body.gk-quiz .itsuki-sprite-area { bottom: 58px; }
             .sprite-img {
-                max-height: 120px;
-                width: auto;
+                width: 92px; height: 92px; max-height: none;
+                border-radius: 50%; object-fit: cover; object-position: top center;
+                border: 2px solid rgba(255,255,255,.55);
+                background: radial-gradient(circle at 50% 70%, rgba(255,255,255,.2), rgba(0,0,0,.34));
+                box-shadow: 0 14px 34px rgba(0,0,0,.42);
             }
             .speech-bubble {
-                position: static;
-                width: auto;
-                max-width: 65%;
-                top: auto;
-                font-size: 0.92rem;
-                padding: 10px 14px;
-                border-radius: 14px;
+                position: absolute; left: 0; right: auto; bottom: calc(100% + 8px); top: auto;
+                width: min(190px, 55vw); max-width: none; max-height: 24vh;
+                font-size: 0.72rem; padding: 9px 11px; border-radius: 14px;
             }
             .notebook {
                 flex: 1 0 auto;
                 width: 100%;
                 box-sizing: border-box;
-                padding: 20px 16px;
+                padding: 20px 16px 170px;
+                overflow: visible;
                 border-left: 14px solid #eee;
                 border-radius: 12px;
                 box-shadow: 0 8px 24px rgba(0,0,0,0.3);
@@ -1607,36 +1667,27 @@
 
             /* Mobile Subject Shell & Quiz */
             #subject-shell {
-                padding: 56px 10px 16px;
+                padding: 56px 10px 12px;
                 height: 100dvh;
             }
             .subject-layout {
-                gap: 10px;
+                gap: 0;
             }
             .subject-sprite-area {
-                min-height: auto;
-                flex-direction: row;
-                align-items: center;
-                justify-content: center;
-                gap: 12px;
-                padding: 4px 0;
+                width: 116px; left: 8px; right: auto; bottom: 8px;
             }
             .subject-sprite {
-                max-height: 95px;
-                width: auto;
+                width: 92px; height: 92px; max-height: none;
             }
             .subject-bubble {
-                position: static;
-                width: auto;
-                max-width: 68%;
-                font-size: 0.84rem;
-                padding: 8px 12px;
-                border-radius: 14px;
-                margin-bottom: 0;
+                width: min(190px, 56vw); max-height: 22vh;
+                left: 0; right: auto;
+                font-size: 0.72rem; padding: 8px 10px; border-radius: 14px;
             }
             .subject-panel {
-                padding: 16px 14px;
+                padding: 16px 14px 220px;
                 border-radius: 20px;
+                scroll-padding-bottom: 220px;
             }
             .subject-panel h1 {
                 font-size: 1.45rem;
@@ -1695,6 +1746,7 @@
             #surprise-btn {
                 bottom: 12px;
                 left: 12px;
+                right: auto;
                 padding: 9px 14px;
                 font-size: 0.82rem;
             }
@@ -1706,8 +1758,10 @@
             .score-orb { width: 92px; height: 92px; }
             .score-pct { font-size: 1.55rem; }
             .score-frac { font-size: 0.72rem; }
-            .subject-sprite { max-height: 80px; }
-            .subject-panel { padding: 14px 12px; }
+            .subject-sprite { width: 84px; height: 84px; max-height: none; }
+            .subject-sprite-area { width: 104px; }
+            .subject-bubble { width: min(170px, 52vw); max-height: 20vh; font-size: 0.68rem; }
+            .subject-panel { padding: 14px 12px 210px; scroll-padding-bottom: 210px; }
             .exam-diagram-card { padding: 10px 6px; }
         }
     </style>
@@ -2113,6 +2167,40 @@
         let score = 0;
         let reportHtml = '';
 
+        // Local preview servers (for example VS Code Live Server) answer POST
+        // requests with 405. Mirror Subject Mode by retrying the API routes on
+        // the local Node server when the page is not already served from it.
+        async function fetchApiRoute(path, options) {
+            const localPreview = ["localhost", "127.0.0.1", "::1", ""].includes(window.location.hostname)
+                || window.location.protocol === "file:";
+            const endpoints = [path];
+            if (localPreview && window.location.port !== "3000") {
+                endpoints.push(`http://localhost:3000${path}`);
+            }
+
+            let lastResponse = null;
+            let lastError = null;
+
+            for (let i = 0; i < endpoints.length; i++) {
+                const endpoint = endpoints[i];
+                try {
+                    const response = await fetch(endpoint, options);
+                    const canRetry = i < endpoints.length - 1
+                        && (response.status === 404 || response.status === 405);
+                    if (canRetry) {
+                        lastResponse = response;
+                        continue;
+                    }
+                    return response;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+
+            if (lastResponse) return lastResponse;
+            throw lastError || new Error("Network request failed.");
+        }
+
         async function generateTest() {
             if(!spriteMap.idle) { alert("Please upload Itsuki images first!"); return; }
 
@@ -2136,7 +2224,7 @@
                 score = 0;
 
                 // 1. Tavily Real-time Search
-                const search = await fetch('/api/search', {
+                const search = await fetchApiRoute('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2155,6 +2243,9 @@
                     throw new Error(`Search request failed (${search.status}).`);
                 }
                 if(!search.ok) {
+                    if (search.status === 405) {
+                        throw new Error("Search API is unavailable. Run 'npm start' and open http://localhost:3000.");
+                    }
                     throw new Error(searchResults.error?.message || `Search request failed (${search.status}).`);
                 }
                 if(!Array.isArray(searchResults.results)) {
@@ -2172,7 +2263,8 @@
                 Do not use facts published before ${startDate} or after ${endDate}. If a fact's date or accuracy cannot be verified, discard it and use another supported fact.
                 Make all four options plausible but ensure exactly one is supported as correct by the sources. Keep explanations factual and concise.
                 Every object must include the exact matching source URL from the search results in "s" and its publication date in "d".
-                Return strictly JSON: [{"q":"...","o":["...","...","...","..."],"a":0,"e":"...","s":"source URL","d":"publication date"}]`;
+                "a" MUST be the zero-based index of the correct option (0 = first option, 1 = second, 2 = third, 3 = fourth). "c" MUST copy the exact text of the correct option.
+                Return strictly JSON: [{"q":"...","o":["...","...","...","..."],"a":0,"c":"exact text of option 1","e":"...","s":"source URL","d":"publication date"}]`;
 
                 quizData = [];
                 const requestedCount = Number(count);
@@ -2184,7 +2276,7 @@
                     const seenQuestions = new Set(quizData.map(question => question.q.toLowerCase().trim()));
 
                     for(let attempt = 1; attempt <= 3; attempt++) {
-                        const ai = await fetch("/api/chat", {
+                        const ai = await fetchApiRoute("/api/chat", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
@@ -2232,6 +2324,7 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('setup-view').style.display = 'none';
                 document.getElementById('quiz-content').style.display = 'block';
+                document.body.classList.add('gk-quiz');
                 loadQuestion();
 
             } catch (e) {
@@ -2254,12 +2347,20 @@
             q.o.forEach((opt, i) => {
                 const d = document.createElement('div');
                 d.className = 'option';
-                d.innerText = opt;
-                d.onclick = () => check(i, d);
+                d.dataset.index = String(i);
+                d.textContent = opt;
+                d.setAttribute('role', 'button');
+                d.tabIndex = 0;
                 grid.appendChild(d);
             });
 
-            gsap.from(".notebook", { x: 50, opacity: 0, duration: 0.6, ease: "back.out" });
+            // A horizontal entrance shift can widen the mobile layout viewport,
+            // which pushes fixed bottom controls below the visible screen.
+            if (window.matchMedia("(max-width: 768px)").matches) {
+                gsap.from(".notebook", { opacity: 0, duration: 0.35, ease: "power1.out" });
+            } else {
+                gsap.from(".notebook", { x: 50, opacity: 0, duration: 0.6, ease: "back.out" });
+            }
         }
 
         function check(idx, el) {
@@ -2335,10 +2436,21 @@
                 if(!Array.isArray(question.o) || question.o.length !== 4) return false;
                 if(new Set(question.o.map(option => String(option).trim().toLowerCase())).size !== 4) return false;
                 if(question.o.some(option => typeof option !== 'string' || !option.trim())) return false;
-                if(!Number.isInteger(question.a) || question.a < 0 || question.a > 3) return false;
                 if(typeof question.e !== 'string' || !question.e.trim()) return false;
                 if(typeof question.s !== 'string' || !sourceUrls.has(question.s)) return false;
                 if(typeof question.d !== 'string' || !question.d.trim()) return false;
+
+                // Anchor the answer to the option text when the model supplies it.
+                // This removes the off-by-one errors caused by 1-based answer indexes.
+                const normalizeOption = value => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+                const copiedAnswer = normalizeOption(question.c);
+                let answerIndex = question.a;
+                if (copiedAnswer) {
+                    const textIndex = question.o.findIndex(option => normalizeOption(option) === copiedAnswer);
+                    if (textIndex !== -1) answerIndex = textIndex;
+                }
+                if (!Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex > 3) return false;
+                question.a = answerIndex;
 
                 const normalizedQuestion = question.q.trim().toLowerCase();
                 if(seenQuestions.has(normalizedQuestion) || batchQuestions.has(normalizedQuestion)) return false;
@@ -4930,7 +5042,9 @@ Return ONLY valid JSON with no markdown fences and no extra prose:
 
             document.getElementById("subject-app").classList.remove("testing");
             showSubjectView("result");
-            const resultMood = pct >= 90 ? "happy" : pct >= 60 ? "idle" : "strict";
+            const highScore = pct >= 90;
+            const rewardUnlocked = highScore && subjectQuizData.length >= 10;
+            const resultMood = highScore ? "happy" : pct >= 60 ? "idle" : "strict";
             resolveSprite(subjectTeacherKey, resultMood, document.getElementById("result-sprite"));
             resolveSprite(subjectTeacherKey, resultMood, document.getElementById("setup-sprite"));
 
@@ -4967,8 +5081,7 @@ Return ONLY valid JSON with no markdown fences and no extra prose:
                     </div>`;
             }).join("");
 
-            const unlocked = pct >= 90;
-            const resultLine = (unlocked ? teacher.lines.resultHigh : teacher.lines.resultLow)
+            const resultLine = (highScore ? teacher.lines.resultHigh : teacher.lines.resultLow)
                 .replace("{score}", `${trimMark(subjectScore)}/${total}`)
                 .replace("{pct}", String(pct));
 
@@ -4979,14 +5092,14 @@ Return ONLY valid JSON with no markdown fences and no extra prose:
                         <h1>${pct >= 90 ? "Outstanding work." : pct >= 60 ? "Good progress." : "Let's rebuild the basics."}</h1>
                         <p class="muted">${escapeSubjectHtml(subjectContext.subject)} · ${escapeSubjectHtml(subjectContext.board)}${subjectContext.grade ? " · Class " + escapeSubjectHtml(subjectContext.grade) : ""}</p>
                     </div>
-                    <div class="score-orb ${unlocked ? "unlocked" : ""}">
+                    <div class="score-orb ${highScore ? "unlocked" : ""}">
                         <span class="score-pct">${pct}%</span>
                         <span class="score-frac">${trimMark(subjectScore)}/${total} marks</span>
                     </div>
                 </div>
                 <div class="result-message">${escapeSubjectHtml(resultLine)}</div>
                 <div class="result-message glass-soft"><strong>Focus next:</strong> ${weak.length ? weak.slice(0, 5).map(q => escapeSubjectHtml(q)).join(" · ") + (weak.length > 5 ? ` · +${weak.length - 5} more` : "") : "Nothing — full marks. Keep this momentum."}</div>
-                ${unlocked ? `
+                ${rewardUnlocked ? `
                     <div class="unlock-card glass-soft">
                         <div>
                             <strong>Secret lesson unlocked</strong>
@@ -4997,11 +5110,11 @@ Return ONLY valid JSON with no markdown fences and no extra prose:
                 <div class="subject-report-list">${analysis}</div>
                 <div class="result-actions">
                     <button class="subject-btn" type="button" onclick="retakeSubject()">BUILD ANOTHER EXAM</button>
-                    ${unlocked ? `<button class="ghost-btn" type="button" onclick="startSubjectSecret()">ASK ${escapeSubjectHtml(teacher.name.toUpperCase())} A QUESTION</button>` : ""}
+                    ${rewardUnlocked ? `<button class="ghost-btn" type="button" onclick="startSubjectSecret()">ASK ${escapeSubjectHtml(teacher.name.toUpperCase())} A QUESTION</button>` : ""}
                 </div>
             `;
 
-            if (unlocked) {
+            if (rewardUnlocked) {
                 subjectChatHistory = [];
                 subjectChatUserCount = 0;
                 subjectScenePlayed = false;
@@ -5084,8 +5197,14 @@ Return ONLY valid JSON with no markdown fences and no extra prose:
             }, 320);
         }
 
+        function subjectRewardUnlocked() {
+            return subjectQuizData.length >= 10
+                && Number(subjectContext.total) > 0
+                && Number(subjectContext.pct) >= 90;
+        }
+
         function startSubjectSecret() {
-            if (!subjectTeacherKey) return;
+            if (!subjectTeacherKey || !subjectRewardUnlocked()) return;
             if (subjectScenePlayed) {
                 openSubjectChat();
                 return;
@@ -5307,6 +5426,8 @@ You are speaking privately with the student after their exam. Stay fully in char
 
         document.addEventListener("DOMContentLoaded", () => {
             document.body.classList.add("mode-gk");
+            const itsukiSprite = document.getElementById("itsuki-main");
+            if (itsukiSprite) itsukiSprite.src = spriteMap.idle;
             buildTeacherCards();
             positionModeIndicator();
             document.getElementById("sub-refs").addEventListener("change", handleSubjectRefs);
@@ -5322,6 +5443,30 @@ You are speaking privately with the student after their exam. Stay fully in char
             document.addEventListener("fullscreenchange", handleFocusFullscreenChange);
             document.addEventListener("webkitfullscreenchange", handleFocusFullscreenChange);
             document.addEventListener("visibilitychange", handleFocusVisibilityChange);
+
+            const gkOptionsGrid = document.getElementById("options-grid");
+            if (gkOptionsGrid) {
+                gkOptionsGrid.addEventListener("click", (event) => {
+                    const option = event.target.closest(".option");
+                    if (!option || !gkOptionsGrid.contains(option)) return;
+                    if (option.dataset.answered === "true") return;
+                    const index = Number(option.dataset.index);
+                    if (!Number.isInteger(index)) return;
+                    option.dataset.answered = "true";
+                    check(index, option);
+                });
+                gkOptionsGrid.addEventListener("keydown", (event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    const option = event.target.closest(".option");
+                    if (!option || !gkOptionsGrid.contains(option)) return;
+                    event.preventDefault();
+                    if (option.dataset.answered === "true") return;
+                    const index = Number(option.dataset.index);
+                    if (!Number.isInteger(index)) return;
+                    option.dataset.answered = "true";
+                    check(index, option);
+                });
+            }
 
             const focusTodoList = document.getElementById("focus-todo-list");
             if (focusTodoList) {
