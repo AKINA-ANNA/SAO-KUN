@@ -1935,9 +1935,10 @@
                                     <label class="type-chip"><input type="checkbox" value="Application-Based"><span>Application-Based</span></label>
                                     <label class="type-chip"><input type="checkbox" value="HOTS / Analytical"><span>HOTS / Analytical</span></label>
                                     <label class="type-chip"><input type="checkbox" value="Diagram-Based" checked><span>Diagram-Based</span></label>
-                                    <label class="type-chip"><input type="checkbox" value="Descriptive / Written"><span>Descriptive Problem</span></label>
+                                    <label class="type-chip"><input type="checkbox" value="Descriptive / Written"><span>Written / Explanation</span></label>
                                     <label class="type-chip"><input type="checkbox" value="Mixed"><span>Mixed</span></label>
                                 </div>
+                                <p class="muted" style="font-size:.74rem;margin:8px 0 0;">Choose “Written / Explanation” for an all-written exam. “Mixed” blends MCQs with written questions.</p>
                             </div>
                             <div class="field full">
                                 <label for="sub-instructions">Your own description / instructions</label>
@@ -4129,7 +4130,7 @@
                     if (ref.text && ref.text.length > 80) {
                         textParts.push(`--- ${ref.name} ---\n${ref.text}`);
                     } else {
-                        const pageImages = await subjectPdfToImages(ref.file, 2);
+                        const pageImages = await subjectPdfToImages(ref.file, 6);
                         pageImages.forEach((dataUrl, index) => {
                             images.push({ name: `${ref.name} page ${index + 1}`, dataUrl });
                         });
@@ -4141,7 +4142,7 @@
             }
             return {
                 text: textParts.join("\n\n").slice(0, 22000),
-                images: images.slice(0, 3)
+                images: images.slice(0, 6)
             };
         }
 
@@ -4298,6 +4299,8 @@
                     correctIndex,
                     rubric,
                     maxMarks,
+                    scopeFocus: String(json.scopeFocus || json.scope || "").trim(),
+                    sourceEvidence: cleanSubjectEvidence(json.sourceEvidence || json.evidence || ""),
                     reactionOk: String(json.reactionOk || json.ok || "").trim(),
                     reactionNo: String(json.reactionNo || json.no || "").trim()
                 };
@@ -4482,37 +4485,206 @@
         function buildQuestionFormatPlan(count, types) {
             const descriptiveSelected = types.includes("Descriptive / Written");
             const mixedSelected = types.includes("Mixed");
-            const onlyDescriptive = descriptiveSelected && types.length === 1;
             const plan = [];
 
             for (let i = 0; i < count; i++) {
                 let format = "mcq";
-                if (onlyDescriptive) {
+                if (descriptiveSelected) {
+                    // "Descriptive / Written" means the whole exam is written.
+                    // "Mixed" is the option for a blend of MCQ and written questions.
                     format = "descriptive";
                 } else if (mixedSelected) {
                     // Mixed = mostly MCQ, roughly one written question every three.
                     format = (i % 3 === 2) ? "descriptive" : "mcq";
-                } else if (descriptiveSelected) {
-                    // Keep the exam mostly MCQ, with occasional written practice.
-                    const everyFourth = (i + 1) % 4 === 0;
-                    const smallSetNeedsOne = count < 4 && i === count - 1;
-                    format = (everyFourth || smallSetNeedsOne) ? "descriptive" : "mcq";
                 }
                 plan.push(format);
             }
             return plan;
         }
 
+        function normalizeScopeText(value) {
+            return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        }
+
+        function cleanSubjectEvidence(value) {
+            return String(value || "")
+                .replace(/^\s*fact\s*#?\s*\d+\s*[:\-–]\s*/i, "")
+                .trim();
+        }
+
+        function subjectEvidenceIsGrounded(evidence, scope, refs) {
+            const text = cleanSubjectEvidence(evidence);
+            if (!text) return false;
+            const haystack = normalizeScopeText([
+                scope && scope.scopeSummary,
+                scope && scope.keyConcepts,
+                scope && scope.keyFacts,
+                scope && scope.questionSeeds,
+                refs && refs.text
+            ].flat().filter(Boolean).join(" "));
+            // If the source is an image-only reference, there is no text to compare.
+            if (!haystack) return true;
+
+            const stopWords = new Set([
+                "that", "this", "with", "from", "have", "will", "your", "their", "which", "when",
+                "what", "where", "does", "into", "also", "more", "than", "then", "them", "they",
+                "been", "were", "are", "and", "for", "the", "can", "not", "but", "its", "has",
+                "was", "how", "why", "all", "any", "use", "using", "reference", "source", "scope",
+                "fact", "answer", "question", "evidence", "proves", "support", "supported",
+                "explain", "discuss", "include", "including", "example", "examples", "provide",
+                "following", "about", "different", "main", "other", "each", "between", "because",
+                "effect", "effects", "impact", "impacts"
+            ]);
+            const meaningful = Array.from(new Set(
+                normalizeScopeText(text).split(" ").filter(token => token.length >= 4 && !stopWords.has(token))
+            ));
+            if (!meaningful.length) return false;
+            const matches = meaningful.filter(token => haystack.includes(token));
+            return matches.length >= 2 || (matches.length === 1 && matches[0].length >= 7);
+        }
+
+        function formatSubjectScopeForPrompt(scope, refs) {
+            if (scope) {
+                const lines = [];
+                if (scope.chapter) lines.push(`Chapter: ${scope.chapter}`);
+                if (scope.scopeSummary) lines.push(`What the reference actually covers: ${scope.scopeSummary}`);
+                if (scope.keyConcepts.length) lines.push(`Key concepts explicitly present: ${scope.keyConcepts.join("; ")}`);
+                if (scope.keyFacts.length) lines.push(`Grounded facts from the reference:\n${scope.keyFacts.map((fact, index) => `${index + 1}. ${fact}`).join("\n")}`);
+                if (scope.questionSeeds.length) lines.push(`Scoped question angles (all answerable from the reference):\n${scope.questionSeeds.map((seed, index) => `${index + 1}. ${seed}`).join("\n")}`);
+                if (scope.excludedTopics.length) lines.push(`Do NOT test these nearby/out-of-scope topics: ${scope.excludedTopics.join("; ")}`);
+                if (lines.length) return lines.join("\n");
+            }
+            if (refs.text && refs.text.trim()) {
+                return `REFERENCE MATERIAL (authoritative, use only this):\n${refs.text.trim().slice(0, 22000)}`;
+            }
+            return "";
+        }
+
+        async function buildSubjectReferenceScope(config, refs, t) {
+            const referenceText = String(refs.text || "").trim();
+            const images = (refs.images || []).filter(image => image && image.dataUrl);
+            if (!referenceText && !images.length) return null;
+
+            const sourceDescription = referenceText
+                ? `REFERENCE MATERIAL:\n${referenceText.slice(0, 22000)}`
+                : "REFERENCE MATERIAL: The attached page images are the only source.";
+
+            const systemPrompt = `You are a strict curriculum analyst for ${t.name}. Your ONLY job is to map the exact scope of the reference material supplied by the student.
+Do not use outside knowledge. Do not add facts, examples, names, dates, places, or topics that are not present in the reference material.
+If the student names a chapter or topic, map ONLY that chapter/topic. If the reference contains other chapters, ignore them.
+If the reference material is unreadable, too short, or does not cover the requested chapter, say so in "scopeSummary" and leave the arrays empty. Never fill gaps with general knowledge.
+
+Return ONLY valid JSON with this exact shape. No markdown fences, no prose before or after:
+{"chapter":"...","scopeSummary":"...","keyConcepts":["..."],"keyFacts":["..."],"questionSeeds":["..."],"excludedTopics":["..."]}
+
+Rules:
+- "chapter": the exact chapter/topic named in the reference or the student's syllabus.
+- "scopeSummary": 2-4 sentences describing what the reference actually covers.
+- "keyConcepts": 5-12 concepts explicitly present in the reference.
+- "keyFacts": 8-15 precise facts or cause-effect statements copied or closely paraphrased from the reference. They must be specific enough to test.
+- "questionSeeds": 6-15 specific, testable angles grounded in those facts. Each seed must be answerable from the reference alone.
+- "excludedTopics": up to 8 nearby topics that are NOT supported by the reference, so they can be avoided.
+- Prefer fewer accurate items over more speculative items.`;
+
+            const userPrompt = `Subject: ${config.subject}
+Board / Level: ${config.board || "General"}${config.grade ? ` — Class ${config.grade}` : ""}
+Requested syllabus / chapter: ${config.syllabus || config.subject}
+Student instructions: ${config.instructions || "None"}
+
+${sourceDescription}
+
+Map only the scope of this reference. Follow the strict JSON schema from the system message.`;
+
+            const userContent = [{ type: "text", text: userPrompt }];
+            images.forEach(image => {
+                userContent.push({ type: "image_url", image_url: { url: image.dataUrl } });
+            });
+
+            let raw = "";
+            try {
+                raw = await subjectOpenRouter({
+                    model: SUBJECT_MODEL,
+                    temperature: 0.1,
+                    max_tokens: 1600,
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userContent }
+                    ]
+                });
+            } catch (e) {
+                console.warn("Subject scope extraction failed:", e);
+                return null;
+            }
+
+            const json = extractFirstJsonObject(raw);
+            if (!json) return null;
+            const asList = (value, limit) => (Array.isArray(value) ? value : [])
+                .map(item => String(item == null ? "" : item).trim())
+                .filter(Boolean)
+                .slice(0, limit);
+            const scope = {
+                chapter: String(json.chapter || "").trim(),
+                scopeSummary: String(json.scopeSummary || json.summary || "").trim(),
+                keyConcepts: asList(json.keyConcepts || json.concepts, 12),
+                keyFacts: asList(json.keyFacts || json.facts, 15),
+                questionSeeds: asList(json.questionSeeds || json.seeds, 15),
+                excludedTopics: asList(json.excludedTopics || json.excluded, 8)
+            };
+            if (!scope.keyFacts.length && !scope.keyConcepts.length && !scope.scopeSummary) return null;
+
+            // Never let the "out of scope" list contradict the student's stated
+            // chapter or a concept the reference itself grounds.
+            const requestedScopeText = normalizeScopeText(`${config.subject || ""} ${config.syllabus || ""} ${config.instructions || ""}`);
+            const groundedText = normalizeScopeText([scope.chapter, scope.keyConcepts, scope.keyFacts, scope.questionSeeds].flat().filter(Boolean).join(" "));
+            scope.excludedTopics = scope.excludedTopics.filter(topic => {
+                const key = normalizeScopeText(topic);
+                return key && !requestedScopeText.includes(key) && !groundedText.includes(key);
+            });
+            return scope;
+        }
+
         async function generateSubjectQuestions(config) {
             const requestedCount = Number(config.count) || 1;
             const allQuestions = [];
             const seenTopics = new Set();
+            const usedScopeSeeds = new Set();
             const needsDiagram = config.types.includes("Diagram-Based") || config.types.includes("Mixed");
             const diff = config.difficulty.includes("Advanced") ? "Advanced" : config.difficulty.includes("Easy") ? "Easy" : "Medium";
-            const topic = config.syllabus || config.instructions || config.subject;
+            const topic = config.syllabus || config.subject;
             const refs = config.refs || { text: "", images: [] };
+            const hasReference = Boolean((refs.text && refs.text.trim()) || (refs.images && refs.images.length));
             const t = TEACHERS[subjectTeacherKey];
             const plan = buildQuestionFormatPlan(requestedCount, config.types);
+
+            document.getElementById("subject-loading-text").textContent = "Mapping the reference scope and chapter boundaries...";
+            const scope = await buildSubjectReferenceScope(config, refs, t);
+            const scopeHasGroundedFacts = Boolean(scope && (scope.keyFacts.length || scope.keyConcepts.length));
+            let scopeText = formatSubjectScopeForPrompt(scope, refs);
+            // If scope extraction produced only a vague summary, fall back to the
+            // actual reference text so the generator is not left to guess.
+            if (hasReference && !scopeHasGroundedFacts && refs.text && refs.text.trim()) {
+                scopeText = `REFERENCE MATERIAL (authoritative, use only this):\n${refs.text.trim().slice(0, 22000)}`;
+            }
+            const scopeSeeds = (scope && scope.questionSeeds) ? scope.questionSeeds : [];
+            const excludedTopics = (scope && scope.excludedTopics) ? scope.excludedTopics : [];
+            const canValidateEvidence = Boolean((refs.text && refs.text.trim()) || scopeHasGroundedFacts);
+
+            const sourceContract = hasReference
+                ? `SOURCE CONTRACT (highest priority):
+- The reference scope above is the ONLY source of facts for this question.
+- Test ONLY the requested chapter/syllabus. Ignore other chapters that may appear in the reference.
+- Every part of the question, all four options, the correct answer, the explanation, and the rubric must be supported by a fact in the reference scope.
+- Never use general knowledge, other chapters, current events, or any topic listed as out of scope.
+- Do not import facts from the syllabus that are not present in the reference scope.
+- If the scope does not support the question you planned, discard it and choose another scoped fact. Never invent.
+- If the reference does not provide specific named examples, do not ask the student to "give examples"; ask them to explain using the supplied facts instead.
+- Do not ask for "positive and negative effects", "advantages and disadvantages", or "both sides" unless the reference explicitly contains both sides.
+- Do not add extra clauses that require outside knowledge, such as effects on "local economies" or "specific examples", unless the reference scope explicitly covers them.
+- "sourceEvidence" must copy a complete fact from the reference scope that proves the answer. Never use a placeholder such as "fact 1" or "the reference scope".`
+                : `SOURCE CONTRACT:
+- No reference file was supplied. Use only the named syllabus/chapter and standard school curriculum content for that chapter.
+- Do not wander into other chapters, current events, or unrelated general knowledge.
+- "sourceEvidence" must name the curriculum fact that supports the answer.`;
 
             for (let qNum = 1; qNum <= requestedCount; qNum++) {
                 const format = plan[qNum - 1];
@@ -4523,26 +4695,39 @@
 
                 for (let attempt = 1; attempt <= 3; attempt++) {
                     try {
+                        const retryNote = attempt > 1
+                            ? `\nIMPORTANT: The previous answer was rejected because its sourceEvidence was missing, was a placeholder, or was not traceable to the reference scope. Copy a complete factual sentence from the REFERENCE SCOPE into "sourceEvidence". Do not write "fact 1", "the reference scope", or any other placeholder.`
+                            : "";
                         const schema = format === "mcq"
-                            ? `{"question":"...","format":"mcq","diagram":"","options":["...","...","...","..."],"correctIndex":0,"answer":"step-by-step solution","rubric":[],"maxMarks":1,"reactionOk":"in-character praise under 25 words","reactionNo":"in-character guidance under 25 words"}`
-                            : `{"question":"...","format":"descriptive","diagram":"","options":[],"correctIndex":-1,"answer":"full model answer with working","rubric":["criterion (2 marks)","criterion (2 marks)","criterion (1 mark)"],"maxMarks":5,"reactionOk":"in-character praise under 25 words","reactionNo":"in-character guidance under 25 words"}`;
+                            ? `{"question":"...","format":"mcq","scopeFocus":"exact scoped angle tested","sourceEvidence":"fact from the reference scope that proves the answer","diagram":"","options":["...","...","...","..."],"correctIndex":0,"answer":"reasoning and solution","rubric":[],"maxMarks":1,"reactionOk":"in-character praise under 25 words","reactionNo":"in-character guidance under 25 words"}`
+                            : `{"question":"...","format":"descriptive","scopeFocus":"exact scoped angle tested","sourceEvidence":"fact from the reference scope that proves the answer","diagram":"","options":[],"correctIndex":-1,"answer":"full model answer with reasoning","rubric":["criterion (2 marks)","criterion (2 marks)","criterion (1 mark)"],"maxMarks":5,"reactionOk":"in-character praise under 25 words","reactionNo":"in-character guidance under 25 words"}`;
 
                         const formatRule = format === "mcq"
-                            ? `This question MUST be a MULTIPLE CHOICE QUESTION with exactly 4 plausible options. "correctIndex" must be an integer from 0 to 3. "rubric" must be an empty array. "maxMarks" must be 1.`
-                            : `This question MUST be DESCRIPTIVE (a written answer), not MCQ. "options" must be empty, "correctIndex" must be -1, and "maxMarks" must be 5. Provide a full model answer and a 3-5 criterion marking rubric so the student's written answer can be graded with partial credit.`;
+                            ? `This question MUST be a MULTIPLE CHOICE QUESTION with exactly 4 plausible options. "correctIndex" must be an integer from 0 to 3. "rubric" must be an empty array. "maxMarks" must be 1. For Advanced, the correct option must require at least two connected reasoning steps, and "answer" must show that reasoning.`
+                            : `This question MUST be DESCRIPTIVE (a written answer), not MCQ. "options" must be empty, "correctIndex" must be -1, and "maxMarks" must be 5. Ask for a multi-step explanation or analysis, not a one-line definition. Provide a full model answer that shows the reasoning steps and a 3-5 criterion marking rubric so the student's written answer can be graded with partial credit.`;
+
+                        const remainingSeeds = scopeSeeds.filter(seed => !usedScopeSeeds.has(normalizeScopeText(seed)));
+                        const seedInstruction = remainingSeeds.length
+                            ? `Choose ONE of these scoped angles for this question and copy it into "scopeFocus": ${remainingSeeds.join(" | ")}.`
+                            : `Choose a specific angle from the reference scope or named chapter and put it in "scopeFocus".`;
 
                         const systemPrompt = `You are ${t.name}, an expert ${config.board || "school"} examiner building a ${config.subject} exam for a study platform.
 Subject: ${config.subject}
 Board / Level: ${config.board || "General"}${config.grade ? ` — Class ${config.grade}` : ""}
-Topic: ${topic}
+Chapter / syllabus: ${topic}
 Difficulty: ${diff}
 Examiner blueprint: ${config.types.join(", ")}
 Needs Diagram: ${needsDiagram ? "True" : "False"}
 
+REFERENCE SCOPE:
+${scopeText || (hasReference ? "The attached reference images are the authoritative source." : "No reference scope was supplied. Stay strictly inside the named syllabus/chapter.")}
+
+${sourceContract}
+
 DIFFICULTY RULES:
 - Easy: direct recall or a single clear step.
 - Medium: apply the concept, with a small twist or 2-3 steps.
-- Advanced: no simple recall or definitions. Use a scenario that needs multi-step calculations, exceptions to rules, or two concepts combined.
+- Advanced: no simple recall or one-line definitions. Build a multi-step question using a scenario, source extract, data interpretation, cause-effect chain, comparison, exception, or two linked concepts. The answer must require at least 2-3 connected reasoning steps. For non-numerical subjects, do not force calculations; use explanation and reasoning instead.
 
 DIAGRAM RULES:
 If Needs Diagram is True you cannot generate images. Put valid Mermaid.js code in the "diagram" field (without the \`\`\` fences). The diagram must match the question's labels, values, and setup exactly. Otherwise use an empty string.
@@ -4554,21 +4739,26 @@ Return ONLY valid JSON with this exact shape. No markdown fences, no prose befor
 ${schema}`;
 
                         const userPrompt = `Create question ${qNum} of ${requestedCount} for ${config.subject}.
-Syllabus / topics: ${topic}
+Chapter / syllabus: ${topic}
 Question format: ${format === "descriptive" ? "DESCRIPTIVE (written answer)" : "MCQ (four options)"}
-Examiner blueprint types: ${config.types.join(", ")}${config.instructions ? `\nStudent instructions: ${config.instructions}` : ""}${seenTopics.size ? `\nDo not repeat these earlier questions: ${Array.from(seenTopics).join(" | ")}` : ""}${refs.text ? `\nUse this reference material where relevant:\n${refs.text}` : ""}
-Follow the strict JSON schema from the system message.`;
+Examiner blueprint types: ${config.types.join(", ")}${config.instructions ? `\nStudent instructions: ${config.instructions}` : ""}${seenTopics.size ? `\nDo not repeat these earlier questions: ${Array.from(seenTopics).join(" | ")}` : ""}${excludedTopics.length ? `\nDo not test these out-of-scope topics: ${excludedTopics.join("; ")}` : ""}
+${seedInstruction}${retryNote}
+The question must be answerable from the reference scope alone. Follow the strict JSON schema from the system message.`;
 
                         const userContent = [{ type: "text", text: userPrompt }];
-                        (refs.images || []).forEach(image => {
-                            if (image && image.dataUrl) {
-                                userContent.push({ type: "image_url", image_url: { url: image.dataUrl } });
-                            }
-                        });
+                        // The scope map already captures the reference facts. Only send page images
+                        // when scope extraction failed or produced no grounded facts.
+                        if (!scopeHasGroundedFacts) {
+                            (refs.images || []).forEach(image => {
+                                if (image && image.dataUrl) {
+                                    userContent.push({ type: "image_url", image_url: { url: image.dataUrl } });
+                                }
+                            });
+                        }
 
                         raw = await subjectOpenRouter({
                             model: SUBJECT_MODEL,
-                            temperature: format === "descriptive" ? 0.55 : 0.7,
+                            temperature: hasReference ? (format === "descriptive" ? 0.35 : 0.45) : (format === "descriptive" ? 0.55 : 0.65),
                             max_tokens: format === "descriptive" ? 2200 : 1500,
                             messages: [
                                 { role: "system", content: systemPrompt },
@@ -4580,7 +4770,8 @@ Follow the strict JSON schema from the system message.`;
                             parsed = parseAIExamResponse(raw);
                             const hasQuestion = parsed && parsed.question && parsed.question.trim().length > 15;
                             const hasOptions = format !== "mcq" || (parsed.options.length === 4 && parsed.correctIndex >= 0 && parsed.correctIndex < parsed.options.length);
-                            if (hasQuestion && hasOptions) break;
+                            const hasEvidence = !hasReference || !canValidateEvidence || subjectEvidenceIsGrounded(parsed.sourceEvidence, scope, refs);
+                            if (hasQuestion && hasOptions && hasEvidence) break;
                         }
                     } catch (e) {
                         if (attempt === 3) throw e;
@@ -4613,11 +4804,21 @@ Follow the strict JSON schema from the system message.`;
                     a: correctIndex,
                     rubric: normalized.rubric || [],
                     maxMarks,
+                    scopeFocus: normalized.scopeFocus || "",
+                    sourceEvidence: normalized.sourceEvidence || "",
                     t: format === "descriptive" ? "Descriptive · Written Answer" : "Multiple Choice",
                     ok: normalized.reactionOk || defaultTeacherLine(true),
                     no: normalized.reactionNo || defaultTeacherLine(false)
                 });
 
+                const focusKey = normalizeScopeText(parsed.scopeFocus || "");
+                if (focusKey) {
+                    const matchedSeed = scopeSeeds.find(seed => {
+                        const seedKey = normalizeScopeText(seed);
+                        return seedKey === focusKey || seedKey.includes(focusKey) || focusKey.includes(seedKey);
+                    });
+                    usedScopeSeeds.add(normalizeScopeText(matchedSeed || parsed.scopeFocus));
+                }
                 seenTopics.add(parsed.question.slice(0, 80));
             }
 
